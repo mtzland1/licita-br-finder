@@ -14,7 +14,8 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { user, login } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const { user, login, signUp } = useAuth();
   const { toast } = useToast();
 
   if (user) {
@@ -26,22 +27,45 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const success = await login(email, password);
-      if (success) {
+      const { error } = isSignUp 
+        ? await signUp(email, password)
+        : await login(email, password);
+        
+      if (error) {
+        let errorMessage = "Ocorreu um erro inesperado";
+        
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = "Email ou senha incorretos";
+        } else if (error.message.includes('User already registered')) {
+          errorMessage = "Usuário já cadastrado. Tente fazer login.";
+        } else if (error.message.includes('Password should be at least')) {
+          errorMessage = "A senha deve ter pelo menos 6 caracteres";
+        } else if (error.message.includes('Invalid email')) {
+          errorMessage = "Email inválido";
+        }
+        
         toast({
-          title: "Login realizado com sucesso!",
-          description: "Bem-vindo ao LicitaBrasil",
-        });
-      } else {
-        toast({
-          title: "Erro no login",
-          description: "Email ou senha incorretos",
+          title: isSignUp ? "Erro no cadastro" : "Erro no login",
+          description: errorMessage,
           variant: "destructive",
         });
+      } else {
+        if (isSignUp) {
+          toast({
+            title: "Cadastro realizado!",
+            description: "Verifique seu email para confirmar a conta",
+          });
+        } else {
+          toast({
+            title: "Login realizado com sucesso!",
+            description: "Bem-vindo ao LicitaBrasil",
+          });
+        }
       }
     } catch (error) {
+      console.error('Auth error:', error);
       toast({
-        title: "Erro no login",
+        title: isSignUp ? "Erro no cadastro" : "Erro no login",
         description: "Ocorreu um erro inesperado",
         variant: "destructive",
       });
@@ -66,10 +90,13 @@ const Login = () => {
         <Card className="shadow-xl border-0">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">
-              Fazer Login
+              {isSignUp ? 'Criar Conta' : 'Fazer Login'}
             </CardTitle>
             <CardDescription className="text-center">
-              Entre com suas credenciais para acessar sua conta
+              {isSignUp 
+                ? 'Crie sua conta para acessar a plataforma'
+                : 'Entre com suas credenciais para acessar sua conta'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -93,10 +120,11 @@ const Login = () => {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Sua senha"
+                    placeholder={isSignUp ? "Mínimo 6 caracteres" : "Sua senha"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    minLength={6}
                     className="h-11 pr-10"
                   />
                   <Button
@@ -120,18 +148,24 @@ const Login = () => {
                 className="w-full h-11 bg-blue-600 hover:bg-blue-700"
                 disabled={isLoading}
               >
-                {isLoading ? "Entrando..." : "Entrar"}
+                {isLoading 
+                  ? (isSignUp ? "Criando conta..." : "Entrando...") 
+                  : (isSignUp ? "Criar Conta" : "Entrar")
+                }
               </Button>
             </form>
 
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-800 font-medium mb-2">
-                Credenciais de demonstração:
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                {isSignUp ? 'Já tem uma conta?' : 'Não tem uma conta?'}
               </p>
-              <p className="text-sm text-blue-700">
-                Email: admin@licitacoes.com<br />
-                Senha: admin123
-              </p>
+              <Button
+                variant="link"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-blue-600 hover:text-blue-700 p-0 h-auto font-medium"
+              >
+                {isSignUp ? 'Fazer login' : 'Criar conta'}
+              </Button>
             </div>
           </CardContent>
         </Card>
