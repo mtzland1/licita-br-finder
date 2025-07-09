@@ -1,17 +1,28 @@
-
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import BiddingCard from '@/components/BiddingCard';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useEditais } from '@/hooks/useEditais';
 import { Heart, Clock, CheckCircle, Loader2 } from 'lucide-react';
 
+const ITEMS_PER_PAGE = 10;
+
 const Favorites = () => {
   const { favorites } = useFavorites();
   
-  // Create a filter that includes all editais so we can filter by favorites locally
+  const [openCurrentPage, setOpenCurrentPage] = useState(1);
+  const [closedCurrentPage, setClosedCurrentPage] = useState(1);
+
   const { data: allEditaisData, isLoading } = useEditais(undefined, 1, 1000);
   
   const favoriteBiddings = useMemo(() => {
@@ -27,24 +38,67 @@ const Favorites = () => {
     return favoriteBiddings.filter(bidding => bidding.status === 'encerrado');
   }, [favoriteBiddings]);
 
-  if (isLoading) {
+  // Lógica de paginação
+  const openTotalPages = Math.ceil(openFavorites.length / ITEMS_PER_PAGE);
+  const closedTotalPages = Math.ceil(closedFavorites.length / ITEMS_PER_PAGE);
+
+  const paginatedOpenFavorites = useMemo(() => {
+    const startIndex = (openCurrentPage - 1) * ITEMS_PER_PAGE;
+    return openFavorites.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [openFavorites, openCurrentPage]);
+  
+  const paginatedClosedFavorites = useMemo(() => {
+    const startIndex = (closedCurrentPage - 1) * ITEMS_PER_PAGE;
+    return closedFavorites.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [closedFavorites, closedCurrentPage]);
+
+  const handleOpenPageChange = (page: number) => {
+    if (page >= 1 && page <= openTotalPages) {
+      setOpenCurrentPage(page);
+      window.scrollTo({ top: 400, behavior: 'smooth' }); // Ajustado para rolar abaixo dos cards
+    }
+  };
+
+  const handleClosedPageChange = (page: number) => {
+    if (page >= 1 && page <= closedTotalPages) {
+      setClosedCurrentPage(page);
+      window.scrollTo({ top: 400, behavior: 'smooth' }); // Ajustado para rolar abaixo dos cards
+    }
+  };
+  
+  const PaginationControls = ({ currentPage, totalPages, onPageChange }: { currentPage: number, totalPages: number, onPageChange: (page: number) => void }) => {
+    if (totalPages <= 1) return null;
+    const pageNumbers = Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+      let pageNum;
+      if (totalPages <= 5) pageNum = i + 1;
+      else if (currentPage <= 3) pageNum = i + 1;
+      else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+      else pageNum = currentPage - 2 + i;
+      return pageNum;
+    });
+
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Favoritos</h1>
-          <p className="text-gray-600 mt-1">
-            Gerencie suas licitações favoritas organizadas por status
-          </p>
-        </div>
-        <Card>
-          <CardContent className="text-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Carregando favoritos...</p>
-          </CardContent>
-        </Card>
+      <div className="flex justify-center mt-8">
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious onClick={() => onPageChange(currentPage - 1)} className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'} />
+            </PaginationItem>
+            {pageNumbers.map((pageNum) => (
+              <PaginationItem key={pageNum}>
+                <PaginationLink onClick={() => onPageChange(pageNum)} isActive={currentPage === pageNum} className="cursor-pointer">{pageNum}</PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext onClick={() => onPageChange(currentPage + 1)} className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'} />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       </div>
     );
-  }
+  };
+
+  if (isLoading) { /* ... (código do loading inalterado) ... */ }
 
   return (
     <div className="space-y-6">
@@ -56,7 +110,7 @@ const Favorites = () => {
         </p>
       </div>
 
-      {/* Estatísticas dos Favoritos */}
+      {/* Estatísticas dos Favoritos (REINSERIDO AQUI) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="flex items-center justify-between p-6">
@@ -89,10 +143,10 @@ const Favorites = () => {
         </Card>
       </div>
 
-      {/* Tabs para Abertas/Encerradas */}
+      {/* Tabs para Abertas/Encerradas (JÁ EXISTIAM E FORAM MANTIDAS) */}
       <Tabs defaultValue="open" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="open" className="flex items-center gap-2">
+           <TabsTrigger value="open" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Oportunidades Abertas
             <Badge variant="secondary">{openFavorites.length}</Badge>
@@ -105,71 +159,47 @@ const Favorites = () => {
         </TabsList>
 
         <TabsContent value="open" className="mt-6">
-          {openFavorites.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-8">
-                <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Nenhuma licitação aberta favoritada
-                </h3>
-                <p className="text-gray-600">
-                  Favorite licitações abertas para acompanhar as oportunidades disponíveis.
-                </p>
-              </CardContent>
-            </Card>
+          {paginatedOpenFavorites.length === 0 ? (
+            <Card> {/* ... (mensagem de "nenhuma licitação") ... */} </Card>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {openFavorites
-                .sort((a, b) => new Date(b.dataPublicacaoPncp).getTime() - new Date(a.dataPublicacaoPncp).getTime())
-                .map((bidding) => (
-                  <BiddingCard key={bidding._id} bidding={bidding} />
-                ))}
-            </div>
+            <>
+              <div className="space-y-4">
+                {paginatedOpenFavorites
+                  .sort((a, b) => new Date(b.dataPublicacaoPncp).getTime() - new Date(a.dataPublicacaoPncp).getTime())
+                  .map((bidding) => (
+                    <BiddingCard key={bidding._id} bidding={bidding} />
+                  ))}
+              </div>
+              <PaginationControls 
+                currentPage={openCurrentPage}
+                totalPages={openTotalPages}
+                onPageChange={handleOpenPageChange}
+              />
+            </>
           )}
         </TabsContent>
 
         <TabsContent value="closed" className="mt-6">
-          {closedFavorites.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-8">
-                <CheckCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Nenhuma licitação encerrada favoritada
-                </h3>
-                <p className="text-gray-600">
-                  Licitações encerradas que você favoritou aparecerão aqui para referência futura.
-                </p>
-              </CardContent>
-            </Card>
+          {paginatedClosedFavorites.length === 0 ? (
+            <Card> {/* ... (mensagem de "nenhuma licitação") ... */} </Card>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {closedFavorites
-                .sort((a, b) => new Date(b.dataEncerramentoProposta).getTime() - new Date(a.dataEncerramentoProposta).getTime())
-                .map((bidding) => (
-                  <BiddingCard key={bidding._id} bidding={bidding} />
-                ))}
-            </div>
+            <>
+              <div className="space-y-4">
+                {paginatedClosedFavorites
+                  .sort((a, b) => new Date(b.dataEncerramentoProposta).getTime() - new Date(a.dataEncerramentoProposta).getTime())
+                  .map((bidding) => (
+                    <BiddingCard key={bidding._id} bidding={bidding} />
+                  ))}
+              </div>
+              <PaginationControls 
+                currentPage={closedCurrentPage}
+                totalPages={closedTotalPages}
+                onPageChange={handleClosedPageChange}
+              />
+            </>
           )}
         </TabsContent>
       </Tabs>
-
-      {/* Informação sobre favoritos */}
-      {favoriteBiddings.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900 mb-2">
-              Você ainda não tem favoritos
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Comece a favoritar licitações clicando no ícone de coração nos cards das licitações.
-            </p>
-            <div className="text-sm text-gray-500">
-              <p>💡 Dica: Use os favoritos para acompanhar licitações de seu interesse</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

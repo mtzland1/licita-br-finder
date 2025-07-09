@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,12 +18,27 @@ const ScheduledSearch: React.FC = () => {
   const [selectedEventType, setSelectedEventType] = useState<EventType | null>(null);
   const [filteredBiddings, setFilteredBiddings] = useState<Bidding[]>([]);
   
+  const [clientTodayStr, setClientTodayStr] = useState<string | null>(null);
+  const [clientYesterdayStr, setClientYesterdayStr] = useState<string | null>(null);
+  
   const { savedFilters, isLoading: filtersLoading } = useFilters();
   const { 
     activitySummary, 
     getFilteredBiddings,
     isLoading: dataLoading 
   } = useScheduledSearchData(selectedFilterId);
+
+  useEffect(() => {
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    const todayFormatted = format(today, 'yyyy-MM-dd');
+    const yesterdayFormatted = format(yesterday, 'yyyy-MM-dd');
+    
+    setClientTodayStr(todayFormatted);
+    setClientYesterdayStr(yesterdayFormatted);
+  }, []);
 
   const handleFilterChange = (filterId: string) => {
     setSelectedFilterId(filterId);
@@ -44,14 +58,12 @@ const ScheduledSearch: React.FC = () => {
   };
 
   const formatDateForDisplay = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+
+    const date = new Date(`${dateStr}T00:00:00`); 
     
-    if (dateStr === format(today, 'yyyy-MM-dd')) {
+    if (clientTodayStr && dateStr === clientTodayStr) {
       return `Hoje, ${format(date, 'dd/MM', { locale: ptBR })}`;
-    } else if (dateStr === format(yesterday, 'yyyy-MM-dd')) {
+    } else if (clientYesterdayStr && dateStr === clientYesterdayStr) {
       return `Ontem, ${format(date, 'dd/MM', { locale: ptBR })}`;
     } else {
       return format(date, 'dd/MM', { locale: ptBR });
