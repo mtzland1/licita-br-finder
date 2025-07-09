@@ -269,6 +269,10 @@ export type Database = {
           valor_total_estimado: number | null
         }[]
       }
+      sua_funcao_de_busca: {
+        Args: { termos_de_busca: string }
+        Returns: number[]
+      }
     }
     Enums: {
       [_ in never]: never
