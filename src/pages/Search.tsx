@@ -135,7 +135,9 @@ const Search = () => {
     filters.modalities.length || 
     filters.cities.length ||
     filters.startDate || 
-    filters.endDate);
+    filters.endDate ||
+    filters.startCloseDate ||
+    filters.endCloseDate);
 
   if (error) {
     return (
@@ -297,7 +299,7 @@ const Search = () => {
                   </div>
                 </div>
 
-                 {/* TODO: Este bloco de "Data de Encerramento" parece estar com a lógica duplicada do de Abertura. Verifique as variáveis de estado. */}
+                {/* ✅ CORRIGIDO: Data de Encerramento agora usa campos independentes */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <CalendarIcon className="h-4 w-4" />
@@ -312,12 +314,12 @@ const Search = () => {
                              variant="outline"
                              className={cn(
                                "w-full justify-start text-left font-normal text-sm",
-                               !filters.startDate && "text-muted-foreground"
+                               !filters.startCloseDate && "text-muted-foreground"
                              )}
                            >
                              <CalendarIcon className="mr-2 h-3 w-3" />
-                             {filters.startDate ? (
-                               format(filters.startDate, "dd/MM/yyyy", { locale: ptBR })
+                             {filters.startCloseDate ? (
+                               format(filters.startCloseDate, "dd/MM/yyyy", { locale: ptBR })
                              ) : (
                                <span>Selecionar</span>
                              )}
@@ -326,8 +328,8 @@ const Search = () => {
                          <PopoverContent className="w-auto p-0" align="start">
                            <Calendar
                              mode="single"
-                             selected={filters.startDate}
-                             onSelect={(date) => updateFilter('startDate', date)}
+                             selected={filters.startCloseDate}
+                             onSelect={(date) => updateFilter('startCloseDate', date)}
                              initialFocus
                              className="p-3 pointer-events-auto"
                            />
@@ -342,12 +344,12 @@ const Search = () => {
                              variant="outline"
                              className={cn(
                                "w-full justify-start text-left font-normal text-sm",
-                               !filters.endDate && "text-muted-foreground"
+                               !filters.endCloseDate && "text-muted-foreground"
                              )}
                            >
                              <CalendarIcon className="mr-2 h-3 w-3" />
-                             {filters.endDate ? (
-                               format(filters.endDate, "dd/MM/yyyy", { locale: ptBR })
+                             {filters.endCloseDate ? (
+                               format(filters.endCloseDate, "dd/MM/yyyy", { locale: ptBR })
                              ) : (
                                <span>Selecionar</span>
                              )}
@@ -356,8 +358,8 @@ const Search = () => {
                          <PopoverContent className="w-auto p-0" align="start">
                            <Calendar
                              mode="single"
-                             selected={filters.endDate}
-                             onSelect={(date) => updateFilter('endDate', date)}
+                             selected={filters.endCloseDate}
+                             onSelect={(date) => updateFilter('endCloseDate', date)}
                              initialFocus
                              className="p-3 pointer-events-auto"
                            />

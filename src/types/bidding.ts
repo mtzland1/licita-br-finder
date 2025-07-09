@@ -1,4 +1,3 @@
-
 export interface Bidding {
   _id: string;
   valorTotalEstimado: number;
@@ -79,5 +78,7 @@ export interface SearchFilters {
   cities: string[];
   startDate?: Date;
   endDate?: Date;
+  startCloseDate?: Date;
+  endCloseDate?: Date;
   smartSearch: boolean;
 }

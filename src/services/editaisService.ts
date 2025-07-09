@@ -116,12 +116,22 @@ export const fetchEditais = async (
       query = query.in('modalidade_nome', filters.modalities);
     }
 
+    // Filtros de data de abertura
     if (filters.startDate) {
-      query = query.gte('data_publicacao_pncp', filters.startDate.toISOString());
+      query = query.gte('data_abertura_proposta', filters.startDate.toISOString());
     }
 
     if (filters.endDate) {
-      query = query.lte('data_publicacao_pncp', filters.endDate.toISOString());
+      query = query.lte('data_abertura_proposta', filters.endDate.toISOString());
+    }
+
+    // Filtros de data de encerramento
+    if (filters.startCloseDate) {
+      query = query.gte('data_encerramento_proposta', filters.startCloseDate.toISOString());
+    }
+
+    if (filters.endCloseDate) {
+      query = query.lte('data_encerramento_proposta', filters.endCloseDate.toISOString());
     }
   }
 
@@ -177,14 +187,15 @@ export const getUniqueStates = async (): Promise<string[]> => {
   return uniqueStates;
 };
 
-export const getUniqueCities = async (state?: string): Promise<string[]> => {
+export const getUniqueCities = async (states: string[]): Promise<string[]> => {
   let query = supabase
     .from('editais')
     .select('municipio_nome')
     .not('municipio_nome', 'is', null);
 
-  if (state) {
-    query = query.eq('uf_sigla', state);
+  // Se estados são fornecidos, filtra por eles
+  if (states && states.length > 0) {
+    query = query.in('uf_sigla', states);
   }
 
   const { data, error } = await query.order('municipio_nome');
