@@ -89,6 +89,8 @@ const Search = () => {
     filters.startDate || 
     filters.endDate;
 
+  const hasSearchBeenPerformed = hasActiveFilters;
+
   if (error) {
     return (
       <div className="space-y-6">
@@ -323,12 +325,26 @@ const Search = () => {
           <h2 className="text-xl font-semibold text-gray-900">
             Resultados da Pesquisa
           </h2>
-          <Badge variant="outline">
-            Página {currentPage} de {totalPages} - {total} licitações encontradas
-          </Badge>
+          {hasSearchBeenPerformed && (
+            <Badge variant="outline">
+              Página {currentPage} de {totalPages} - {total} licitações encontradas
+            </Badge>
+          )}
         </div>
 
-        {isLoading ? (
+        {!hasSearchBeenPerformed ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <SearchIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-medium text-gray-900 mb-2">
+                Faça sua primeira pesquisa
+              </h3>
+              <p className="text-gray-600 max-w-md mx-auto">
+                Digite palavras-chave ou aplique filtros acima para encontrar licitações relevantes para o seu negócio.
+              </p>
+            </CardContent>
+          </Card>
+        ) : isLoading ? (
           <Card>
             <CardContent className="text-center py-8">
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />

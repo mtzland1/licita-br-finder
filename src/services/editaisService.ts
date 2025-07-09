@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { SearchFilters, Bidding } from '@/types/bidding';
 import { Tables } from '@/integrations/supabase/types';
@@ -81,6 +80,37 @@ const transformEditalToBidding = (edital: EditaisRow): Bidding => {
   };
 };
 
+// Function to find keyword context in text
+const findKeywordContext = (text: string, keywords: string[], contextLength: number = 200): string => {
+  if (!keywords.length || !text) return text.substring(0, contextLength);
+  
+  const lowerText = text.toLowerCase();
+  
+  for (const keyword of keywords) {
+    if (!keyword.trim()) continue;
+    
+    const lowerKeyword = keyword.toLowerCase().trim();
+    const keywordIndex = lowerText.indexOf(lowerKeyword);
+    
+    if (keywordIndex !== -1) {
+      // Calculate start and end positions for context
+      const start = Math.max(0, keywordIndex - Math.floor((contextLength - lowerKeyword.length) / 2));
+      let end = Math.min(text.length, start + contextLength);
+      
+      // Adjust start if end is at text boundary
+      if (end === text.length && text.length > contextLength) {
+        const adjustedStart = Math.max(0, text.length - contextLength);
+        return text.substring(adjustedStart, end);
+      }
+      
+      return text.substring(start, end);
+    }
+  }
+  
+  // If no keyword found, return beginning
+  return text.substring(0, contextLength);
+};
+
 export const fetchEditais = async (
   filters?: SearchFilters,
   page: number = 1,
@@ -96,10 +126,14 @@ export const fetchEditais = async (
       const keywords = filters.keywords.split(';').map(k => k.trim()).filter(k => k);
       
       if (keywords.length > 0) {
-        // Use full-text search for objeto_compra
-        const searchConditions = keywords.map(keyword => 
-          `objeto_compra.ilike.%${keyword}%`
-        ).join(',');
+        // Create search conditions that ensure words are correlative (not just substring matches)
+        const searchConditions = keywords.map(keyword => {
+          // Use word boundary regex to ensure we match whole words or word beginnings
+          // This prevents "ração" from matching "administração"
+          const pattern = `\\b${keyword.toLowerCase()}`;
+          return `objeto_compra.ilike.*${pattern}*`;
+        }).join(',');
+        
         query = query.or(searchConditions);
       }
     }
@@ -140,8 +174,32 @@ export const fetchEditais = async (
     throw new Error('Failed to fetch editais');
   }
 
+  let transformedData = data ? data.map(transformEditalToBidding) : [];
+
+  // Post-process to ensure keyword context and improve matching
+  if (filters?.keywords?.trim()) {
+    const keywords = filters.keywords.split(';').map(k => k.trim()).filter(k => k);
+    
+    // Additional filtering to ensure correlative matches
+    transformedData = transformedData.filter(edital => {
+      const lowerObjecto = edital.objetoCompra.toLowerCase();
+      return keywords.some(keyword => {
+        const lowerKeyword = keyword.toLowerCase().trim();
+        // Check for word boundaries to ensure correlative matches
+        const regex = new RegExp(`\\b${lowerKeyword}`, 'i');
+        return regex.test(edital.objetoCompra);
+      });
+    });
+
+    // Update objeto_compra to show context containing the keyword
+    transformedData = transformedData.map(edital => ({
+      ...edital,
+      objetoCompra: findKeywordContext(edital.objetoCompra, keywords, 200)
+    }));
+  }
+
   return {
-    data: data ? data.map(transformEditalToBidding) : [],
+    data: transformedData,
     total: count || 0,
   };
 };

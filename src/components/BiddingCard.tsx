@@ -54,7 +54,7 @@ const BiddingCard: React.FC<BiddingCardProps> = ({ bidding, highlightKeywords = 
     return text.substring(0, maxLength) + '...';
   };
 
-  const shouldShowReadMore = bidding.objetoCompra.length > 100;
+  const shouldShowReadMore = bidding.objetoCompra.length > 200;
 
   return (
     <>
@@ -77,7 +77,7 @@ const BiddingCard: React.FC<BiddingCardProps> = ({ bidding, highlightKeywords = 
                 <h3 className="font-semibold text-gray-900 text-lg leading-tight">
                   <span
                     dangerouslySetInnerHTML={{
-                      __html: highlightText(truncateText(bidding.objetoCompra, 100), highlightKeywords)
+                      __html: highlightText(truncateText(bidding.objetoCompra, 200), highlightKeywords)
                     }}
                   />
                   {shouldShowReadMore && (
