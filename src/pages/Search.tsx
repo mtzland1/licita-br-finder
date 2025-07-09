@@ -158,7 +158,7 @@ const Search = () => {
           </div>
           
           <div className="text-sm text-gray-600">
-            <p>💡 A busca inteligente está sempre ativa: ignora acentos e trata plurais/singulares automaticamente</p>
+            <p>💡 A busca inteligente ativa: ignora acentos e trata plurais/singulares automaticamente</p>
           </div>
         </CardContent>
       </Card>

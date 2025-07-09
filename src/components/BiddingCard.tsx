@@ -40,7 +40,7 @@ const BiddingCard: React.FC<BiddingCardProps> = ({ bidding }) => {
     return text.substring(0, maxLength) + '...';
   };
 
-  const shouldShowReadMore = bidding.objetoCompra.length > 100;
+  const shouldShowReadMore = bidding.objetoCompra.length > 300;
 
   return (
     <>
@@ -61,7 +61,7 @@ const BiddingCard: React.FC<BiddingCardProps> = ({ bidding }) => {
               
               <div className="space-y-2">
                 <h3 className="font-semibold text-gray-900 text-lg leading-tight">
-                  {truncateText(bidding.objetoCompra, 100)}
+                  {truncateText(bidding.objetoCompra, 300)}
                   {shouldShowReadMore && (
                     <Button
                       variant="link"
