@@ -4,13 +4,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { 
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import BiddingCard from '@/components/BiddingCard';
 import { useEditais } from '@/hooks/useEditais';
 import { SearchFilters } from '@/types/bidding';
 import { Search, TrendingUp, Clock, DollarSign, FileText, Loader2 } from 'lucide-react';
 
+const ITEMS_PER_PAGE = 10;
+
 const Dashboard = () => {
   const [quickSearch, setQuickSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Create filters for the query
   const filters: SearchFilters = useMemo(() => ({
@@ -21,11 +32,12 @@ const Dashboard = () => {
     smartSearch: false,
   }), [quickSearch]);
 
-  // Fetch editais data
-  const { data: editaisData, isLoading, error } = useEditais(filters, 1, 50);
+  // Fetch editais data with pagination
+  const { data: editaisData, isLoading, error } = useEditais(filters, currentPage, ITEMS_PER_PAGE);
 
   const editais = editaisData?.data || [];
   const total = editaisData?.total || 0;
+  const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
   const statistics = useMemo(() => {
     const openBiddings = editais.filter(b => b.status === 'aberto').length;
@@ -51,6 +63,15 @@ const Dashboard = () => {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   if (error) {
@@ -161,9 +182,16 @@ const Dashboard = () => {
               placeholder="Ex: equipamentos; informática; escola"
               value={quickSearch}
               onChange={(e) => setQuickSearch(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               className="flex-1"
             />
-            <Button variant="outline" onClick={() => setQuickSearch('')}>
+            <Button onClick={handleSearch}>
+              Buscar
+            </Button>
+            <Button variant="outline" onClick={() => {
+              setQuickSearch('');
+              setCurrentPage(1);
+            }}>
               Limpar
             </Button>
           </div>
@@ -172,12 +200,12 @@ const Dashboard = () => {
 
       {/* Lista de Licitações */}
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900">
             Licitações Mais Relevantes
           </h2>
           <Badge variant="outline">
-            {editais.length} de {total} resultados
+            Página {currentPage} de {totalPages} - {total} resultados
           </Badge>
         </div>
 
@@ -204,7 +232,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="space-y-4">
             {editais.map((bidding) => (
               <BiddingCard 
                 key={bidding._id} 
@@ -212,6 +240,54 @@ const Dashboard = () => {
                 highlightKeywords={quickSearch.split(';').map(k => k.trim()).filter(k => k)}
               />
             ))}
+            
+            {/* Paginação */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-8">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(pageNum)}
+                            isActive={currentPage === pageNum}
+                            className="cursor-pointer"
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </div>
         )}
       </div>

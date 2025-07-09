@@ -10,13 +10,23 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { 
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import BiddingCard from '@/components/BiddingCard';
-import { allMockBiddings } from '@/data/mockBiddings';
+import { useEditais, useStates, useCities, useModalities } from '@/hooks/useEditais';
 import { SearchFilters } from '@/types/bidding';
-import { Search as SearchIcon, Filter, ChevronDown, Calendar as CalendarIcon, X } from 'lucide-react';
+import { Search as SearchIcon, Filter, ChevronDown, Calendar as CalendarIcon, X, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+
+const ITEMS_PER_PAGE = 10;
 
 const Search = () => {
   const [filters, setFilters] = useState<SearchFilters>({
@@ -27,104 +37,23 @@ const Search = () => {
     smartSearch: true,
   });
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const availableStates = useMemo(() => {
-    const states = Array.from(new Set(allMockBiddings.map(b => b.unidadeOrgao.ufSigla)));
-    return states.sort();
-  }, []);
+  // Fetch filter options
+  const { data: availableStates = [] } = useStates();
+  const { data: availableModalities = [] } = useModalities();
+  const { data: availableCities = [] } = useCities(filters.states.length > 0 ? filters.states[0] : undefined);
 
-  const availableModalities = useMemo(() => {
-    const modalities = Array.from(new Set(allMockBiddings.map(b => b.modalidadeNome)));
-    return modalities.sort();
-  }, []);
-
-  const availableCities = useMemo(() => {
-    let cities = allMockBiddings.map(b => b.unidadeOrgao.municipioNome);
-    if (filters.states.length > 0) {
-      cities = allMockBiddings
-        .filter(b => filters.states.includes(b.unidadeOrgao.ufSigla))
-        .map(b => b.unidadeOrgao.municipioNome);
-    }
-    return Array.from(new Set(cities)).sort();
-  }, [filters.states]);
-
-  const filteredBiddings = useMemo(() => {
-    let result = allMockBiddings;
-
-    // Filtro por palavras-chave
-    if (filters.keywords.trim()) {
-      const keywords = filters.keywords.split(';').map(k => k.trim().toLowerCase());
-      
-      result = result.filter(bidding => {
-        const searchText = `${bidding.objetoCompra} ${bidding.orgaoEntidade.razaoSocial}`.toLowerCase();
-        
-        if (filters.smartSearch) {
-          // Busca inteligente - remove acentos e trata plurais/singulares básicos
-          const normalizeText = (text: string) => {
-            return text
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '')
-              .toLowerCase();
-          };
-          
-          const normalizedSearchText = normalizeText(searchText);
-          
-          return keywords.some(keyword => {
-            const normalizedKeyword = normalizeText(keyword);
-            // Busca exata ou variações básicas (plural/singular)
-            return normalizedSearchText.includes(normalizedKeyword) ||
-                   normalizedSearchText.includes(normalizedKeyword + 's') ||
-                   normalizedSearchText.includes(normalizedKeyword.slice(0, -1));
-          });
-        } else {
-          // Busca exata
-          return keywords.some(keyword => searchText.includes(keyword));
-        }
-      });
-    }
-
-    // Filtro por estados
-    if (filters.states.length > 0) {
-      result = result.filter(bidding => 
-        filters.states.includes(bidding.unidadeOrgao.ufSigla)
-      );
-    }
-
-    // Filtro por modalidades
-    if (filters.modalities.length > 0) {
-      result = result.filter(bidding => 
-        filters.modalities.includes(bidding.modalidadeNome)
-      );
-    }
-
-    // Filtro por cidades
-    if (filters.cities.length > 0) {
-      result = result.filter(bidding => 
-        filters.cities.includes(bidding.unidadeOrgao.municipioNome)
-      );
-    }
-
-    // Filtro por data de abertura
-    if (filters.startDate) {
-      result = result.filter(bidding => 
-        new Date(bidding.dataAberturaProposta) >= filters.startDate!
-      );
-    }
-
-    // Filtro por data de encerramento
-    if (filters.endDate) {
-      result = result.filter(bidding => 
-        new Date(bidding.dataEncerramentoProposta) <= filters.endDate!
-      );
-    }
-
-    return result.sort((a, b) => 
-      new Date(b.dataPublicacaoPncp).getTime() - new Date(a.dataPublicacaoPncp).getTime()
-    );
-  }, [filters]);
+  // Fetch editais data with pagination
+  const { data: editaisData, isLoading, error } = useEditais(filters, currentPage, ITEMS_PER_PAGE);
+  
+  const editais = editaisData?.data || [];
+  const total = editaisData?.total || 0;
+  const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
   const updateFilter = (key: keyof SearchFilters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+    setCurrentPage(1); // Reset to first page when filters change
   };
 
   const toggleArrayFilter = (key: 'states' | 'modalities' | 'cities', value: string) => {
@@ -134,6 +63,7 @@ const Search = () => {
         ? prev[key].filter(item => item !== value)
         : [...prev[key], value]
     }));
+    setCurrentPage(1); // Reset to first page when filters change
   };
 
   const clearFilters = () => {
@@ -144,6 +74,12 @@ const Search = () => {
       cities: [],
       smartSearch: true,
     });
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const hasActiveFilters = filters.keywords.trim() || 
@@ -152,6 +88,24 @@ const Search = () => {
     filters.cities.length > 0 ||
     filters.startDate || 
     filters.endDate;
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Pesquisa Avançada</h1>
+          <p className="text-gray-600 mt-1">
+            Encontre licitações específicas usando filtros detalhados
+          </p>
+        </div>
+        <Card>
+          <CardContent className="text-center py-8">
+            <p className="text-red-600">Erro ao carregar licitações. Tente novamente mais tarde.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -365,16 +319,23 @@ const Search = () => {
 
       {/* Resultados */}
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900">
             Resultados da Pesquisa
           </h2>
           <Badge variant="outline">
-            {filteredBiddings.length} licitações encontradas
+            Página {currentPage} de {totalPages} - {total} licitações encontradas
           </Badge>
         </div>
 
-        {filteredBiddings.length === 0 ? (
+        {isLoading ? (
+          <Card>
+            <CardContent className="text-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <p className="text-gray-600">Carregando licitações...</p>
+            </CardContent>
+          </Card>
+        ) : editais.length === 0 ? (
           <Card>
             <CardContent className="text-center py-8">
               <SearchIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -387,14 +348,62 @@ const Search = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredBiddings.map((bidding) => (
+          <div className="space-y-4">
+            {editais.map((bidding) => (
               <BiddingCard 
                 key={bidding._id} 
                 bidding={bidding}
                 highlightKeywords={filters.keywords.split(';').map(k => k.trim()).filter(k => k)}
               />
             ))}
+            
+            {/* Paginação */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-8">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(pageNum)}
+                            isActive={currentPage === pageNum}
+                            className="cursor-pointer"
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </div>
         )}
       </div>
