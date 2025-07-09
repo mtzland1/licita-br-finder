@@ -99,21 +99,19 @@ export const fetchEditais = async (
           // Busca inteligente ATIVADA: usar texto completo na coluna objeto_compra_padronizado
           const searchQuery = keywords.join(' ');
           query = query.textSearch('objeto_compra_padronizado', `'${searchQuery}'`, {
-            type: 'plainto',
+            type: 'plain',
             config: 'portuguese'
           });
         } else {
-          // Busca inteligente DESATIVADA: usar regex com word boundaries
-          const regexConditions = keywords.map(keyword => {
-            // Escapa caracteres especiais do regex e adiciona word boundaries
-            const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            return `objeto_compra.~*.\\y${escapedKeyword}\\y`;
+          // Busca inteligente DESATIVADA: usar correspondência exata na coluna objeto_compra
+          const exactMatchConditions = keywords.map(keyword => {
+            return `objeto_compra.eq.${keyword}`;
           });
           
-          if (regexConditions.length === 1) {
-            query = query.or(regexConditions[0]);
+          if (exactMatchConditions.length === 1) {
+            query = query.or(exactMatchConditions[0]);
           } else {
-            query = query.or(regexConditions.join(','));
+            query = query.or(exactMatchConditions.join(','));
           }
         }
       }
