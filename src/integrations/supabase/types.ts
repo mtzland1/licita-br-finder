@@ -14,7 +14,242 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      biddings: {
+        Row: {
+          amparo_legal_codigo: number | null
+          amparo_legal_descricao: string | null
+          amparo_legal_nome: string | null
+          ano_compra: number | null
+          arquivos: Json | null
+          created_at: string | null
+          data_abertura_proposta: string | null
+          data_atualizacao: string | null
+          data_atualizacao_global: string | null
+          data_encerramento_proposta: string | null
+          data_extracao: string | null
+          data_inclusao: string | null
+          data_publicacao_pncp: string | null
+          existe_resultado: boolean | null
+          external_id: string
+          id: string
+          informacao_complementar: string | null
+          justificativa_presencial: string | null
+          link_processo_eletronico: string | null
+          link_sistema_origem: string | null
+          modalidade_id: number | null
+          modalidade_nome: string | null
+          modo_disputa_id: number | null
+          modo_disputa_nome: string | null
+          numero_compra: string | null
+          numero_controle_pncp: string | null
+          objeto_compra: string
+          orcamento_sigiloso_codigo: number | null
+          orcamento_sigiloso_descricao: string | null
+          orgao_cnpj: string | null
+          orgao_esfera_id: string | null
+          orgao_poder_id: string | null
+          orgao_razao_social: string | null
+          processo: string | null
+          sequencial_compra: number | null
+          situacao_compra_id: number | null
+          situacao_compra_nome: string | null
+          srp: boolean | null
+          status: string
+          tipo_instrumento_codigo: number | null
+          tipo_instrumento_nome: string | null
+          unidade_codigo_ibge: string | null
+          unidade_codigo_unidade: string | null
+          unidade_municipio_nome: string | null
+          unidade_nome_unidade: string | null
+          unidade_uf_nome: string | null
+          unidade_uf_sigla: string | null
+          updated_at: string | null
+          usuario_nome: string | null
+          valor_total_estimado: number | null
+          valor_total_homologado: number | null
+        }
+        Insert: {
+          amparo_legal_codigo?: number | null
+          amparo_legal_descricao?: string | null
+          amparo_legal_nome?: string | null
+          ano_compra?: number | null
+          arquivos?: Json | null
+          created_at?: string | null
+          data_abertura_proposta?: string | null
+          data_atualizacao?: string | null
+          data_atualizacao_global?: string | null
+          data_encerramento_proposta?: string | null
+          data_extracao?: string | null
+          data_inclusao?: string | null
+          data_publicacao_pncp?: string | null
+          existe_resultado?: boolean | null
+          external_id: string
+          id?: string
+          informacao_complementar?: string | null
+          justificativa_presencial?: string | null
+          link_processo_eletronico?: string | null
+          link_sistema_origem?: string | null
+          modalidade_id?: number | null
+          modalidade_nome?: string | null
+          modo_disputa_id?: number | null
+          modo_disputa_nome?: string | null
+          numero_compra?: string | null
+          numero_controle_pncp?: string | null
+          objeto_compra: string
+          orcamento_sigiloso_codigo?: number | null
+          orcamento_sigiloso_descricao?: string | null
+          orgao_cnpj?: string | null
+          orgao_esfera_id?: string | null
+          orgao_poder_id?: string | null
+          orgao_razao_social?: string | null
+          processo?: string | null
+          sequencial_compra?: number | null
+          situacao_compra_id?: number | null
+          situacao_compra_nome?: string | null
+          srp?: boolean | null
+          status?: string
+          tipo_instrumento_codigo?: number | null
+          tipo_instrumento_nome?: string | null
+          unidade_codigo_ibge?: string | null
+          unidade_codigo_unidade?: string | null
+          unidade_municipio_nome?: string | null
+          unidade_nome_unidade?: string | null
+          unidade_uf_nome?: string | null
+          unidade_uf_sigla?: string | null
+          updated_at?: string | null
+          usuario_nome?: string | null
+          valor_total_estimado?: number | null
+          valor_total_homologado?: number | null
+        }
+        Update: {
+          amparo_legal_codigo?: number | null
+          amparo_legal_descricao?: string | null
+          amparo_legal_nome?: string | null
+          ano_compra?: number | null
+          arquivos?: Json | null
+          created_at?: string | null
+          data_abertura_proposta?: string | null
+          data_atualizacao?: string | null
+          data_atualizacao_global?: string | null
+          data_encerramento_proposta?: string | null
+          data_extracao?: string | null
+          data_inclusao?: string | null
+          data_publicacao_pncp?: string | null
+          existe_resultado?: boolean | null
+          external_id?: string
+          id?: string
+          informacao_complementar?: string | null
+          justificativa_presencial?: string | null
+          link_processo_eletronico?: string | null
+          link_sistema_origem?: string | null
+          modalidade_id?: number | null
+          modalidade_nome?: string | null
+          modo_disputa_id?: number | null
+          modo_disputa_nome?: string | null
+          numero_compra?: string | null
+          numero_controle_pncp?: string | null
+          objeto_compra?: string
+          orcamento_sigiloso_codigo?: number | null
+          orcamento_sigiloso_descricao?: string | null
+          orgao_cnpj?: string | null
+          orgao_esfera_id?: string | null
+          orgao_poder_id?: string | null
+          orgao_razao_social?: string | null
+          processo?: string | null
+          sequencial_compra?: number | null
+          situacao_compra_id?: number | null
+          situacao_compra_nome?: string | null
+          srp?: boolean | null
+          status?: string
+          tipo_instrumento_codigo?: number | null
+          tipo_instrumento_nome?: string | null
+          unidade_codigo_ibge?: string | null
+          unidade_codigo_unidade?: string | null
+          unidade_municipio_nome?: string | null
+          unidade_nome_unidade?: string | null
+          unidade_uf_nome?: string | null
+          unidade_uf_sigla?: string | null
+          updated_at?: string | null
+          usuario_nome?: string | null
+          valor_total_estimado?: number | null
+          valor_total_homologado?: number | null
+        }
+        Relationships: []
+      }
+      favorites: {
+        Row: {
+          bidding_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          bidding_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          bidding_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_bidding_id_fkey"
+            columns: ["bidding_id"]
+            isOneToOne: false
+            referencedRelation: "biddings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_filters: {
+        Row: {
+          cities: string[] | null
+          created_at: string | null
+          end_date: string | null
+          id: string
+          keywords: string | null
+          modalities: string[] | null
+          name: string
+          smart_search: boolean | null
+          start_date: string | null
+          states: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cities?: string[] | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          keywords?: string | null
+          modalities?: string[] | null
+          name: string
+          smart_search?: boolean | null
+          start_date?: string | null
+          states?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cities?: string[] | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          keywords?: string | null
+          modalities?: string[] | null
+          name?: string
+          smart_search?: boolean | null
+          start_date?: string | null
+          states?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
