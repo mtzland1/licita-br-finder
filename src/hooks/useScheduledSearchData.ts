@@ -38,7 +38,7 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
 
       // Use the existing function to search by keywords
       const { data, error } = await supabase
-        .rpc('buscar_editais_por_palavras', { palavras_chave: keywords });
+        .rpc('buscar_editais_fts', { palavras_chave: keywords });
 
       if (error) {
         console.error('Error fetching relevant editais:', error);

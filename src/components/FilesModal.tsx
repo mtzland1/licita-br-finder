@@ -1,9 +1,15 @@
+// src/components/FilesModal.tsx
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
+import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -11,11 +17,30 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { Bidding } from '@/types/bidding';
-import { Download, FileText, Calendar, Package } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext'; // Verifique se este caminho está correto
+
+// Ícones
+import { Download, Package, FileText, Calendar } from 'lucide-react';
+
+// Helpers para formatação de data
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+// --- INTERFACES ---
+// Garanta que a sua interface Arquivo tenha todos estes campos
+interface Arquivo {
+  url: string;
+  titulo: string;
+  sequencialDocumento: number;
+  dataPublicacaoPncp: string;
+  tipoDocumentoDescricao?: string;
+  tipoDocumentoNome?: string;
+}
+// Garanta que a sua interface Bidding tenha estes campos
+interface Bidding {
+  arquivos: Arquivo[];
+  processo?: string;
+}
 interface FilesModalProps {
   bidding: Bidding;
   isOpen: boolean;
@@ -25,109 +50,70 @@ interface FilesModalProps {
 const FILES_PER_PAGE = 5;
 
 const FilesModal: React.FC<FilesModalProps> = ({ bidding, isOpen, onClose }) => {
-  const [currentPage, setCurrentPage] = useState(1);
+  // --- ESTADOS ---
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
-  
+  const [currentPage, setCurrentPage] = useState(1);
+  const { token } = useAuth();
+
+  // --- LÓGICA DE PAGINAÇÃO ---
   const totalFiles = bidding.arquivos.length;
   const totalPages = Math.ceil(totalFiles / FILES_PER_PAGE);
-  
   const startIndex = (currentPage - 1) * FILES_PER_PAGE;
   const endIndex = startIndex + FILES_PER_PAGE;
   const currentFiles = bidding.arquivos.slice(startIndex, endIndex);
 
-  const handleDownload = (fileUrl: string, fileName: string) => {
-    const link = document.createElement('a');
-    link.href = fileUrl;
-    link.download = fileName;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // --- LÓGICA DE DOWNLOAD (JÁ FUNCIONANDO) ---
+  const fetchFile = async (url: string) => {
+    const proxyUrl = url.replace('https://pncp.gov.br/pncp-api', '/api/proxy');
+    const options = {
+      headers: { 'Authorization': `Bearer ${token}` },
+      cache: 'no-cache' as RequestCache,
+    };
+    const response = await fetch(proxyUrl, options);
+    if (!response.ok) {
+      throw new Error(`Falha na requisição: ${response.status} ${response.statusText}`);
+    }
+    return response.blob();
+  };
+
+  const handleDownload = async (fileUrl: string, fileName: string) => {
+    try {
+      const blob = await fetchFile(fileUrl);
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error("Erro no download:", error);
+      alert("Não foi possível baixar o arquivo. Verifique se sua sessão não expirou.");
+    }
   };
 
   const handleDownloadAll = async () => {
     setIsDownloadingAll(true);
-    
     try {
-      // Importa dinamicamente JSZip
       const { default: JSZip } = await import('jszip');
       const zip = new JSZip();
-      
-      console.log(`Iniciando download de ${bidding.arquivos.length} arquivos...`);
-      
-      // Adiciona todos os arquivos ao ZIP
-      const downloadPromises = bidding.arquivos.map(async (arquivo, index) => {
+
+      for (const arquivo of bidding.arquivos) {
         try {
-          console.log(`Processando arquivo ${index + 1}: ${arquivo.titulo}`);
-          
-          // Tenta fazer fetch do arquivo
-          const response = await fetch(arquivo.url, {
-            mode: 'cors',
-            credentials: 'omit'
-          });
-          
-          if (!response.ok) {
-            console.warn(`Erro HTTP ${response.status} ao baixar ${arquivo.titulo}`);
-            // Se não conseguir fazer fetch, adiciona um arquivo de texto com as informações
-            const infoText = `Arquivo: ${arquivo.titulo || 'Sem título'}\nURL: ${arquivo.url}\nTipo: ${arquivo.tipoDocumentoDescricao || 'Não especificado'}\nData: ${format(new Date(arquivo.dataPublicacaoPncp), 'dd/MM/yyyy', { locale: ptBR })}`;
-            zip.file(`${arquivo.titulo || `documento_${index + 1}`}_info.txt`, infoText);
-            return;
-          }
-          
-          const blob = await response.blob();
-          console.log(`Blob criado para ${arquivo.titulo}:`, blob.size, 'bytes');
-          
-          // Garante que o fileName seja válido
-          let fileName = arquivo.titulo || `documento_${index + 1}`;
-          // Remove caracteres inválidos do nome do arquivo
-          fileName = fileName.replace(/[<>:"/\\|?*]/g, '_');
-          
-          // Adiciona extensão se não houver
-          if (!fileName.includes('.')) {
-            const contentType = response.headers.get('content-type') || '';
-            if (contentType.includes('pdf')) {
-              fileName += '.pdf';
-            } else if (contentType.includes('doc')) {
-              fileName += '.doc';
-            } else if (contentType.includes('image')) {
-              fileName += '.jpg';
-            } else {
-              fileName += '.bin';
-            }
-          }
-          
-          // Adiciona o arquivo ao ZIP
-          zip.file(fileName, blob);
-          console.log(`Arquivo adicionado ao ZIP: ${fileName}`);
-          
+          const blob = await fetchFile(arquivo.url);
+          zip.file(arquivo.titulo, blob);
         } catch (error) {
-          console.error(`Erro ao processar arquivo ${arquivo.titulo}:`, error);
-          // Em caso de erro, adiciona um arquivo de texto com as informações
-          const errorText = `ERRO AO BAIXAR ARQUIVO\n\nArquivo: ${arquivo.titulo || 'Sem título'}\nURL: ${arquivo.url}\nErro: ${error}\n\nVocê pode tentar baixar manualmente usando a URL acima.`;
-          zip.file(`ERRO_${arquivo.titulo || `documento_${index + 1}`}.txt`, errorText);
+          console.error(`Falha ao baixar ${arquivo.titulo}:`, error);
+          zip.file(`${arquivo.titulo}-ERRO.txt`, `Não foi possível baixar este arquivo.`);
         }
-      });
-      
-      await Promise.all(downloadPromises);
-      console.log('Todos os arquivos processados, gerando ZIP...');
-      
-      // Gera o ZIP e faz o download
-      const zipBlob = await zip.generateAsync({ 
-        type: 'blob',
-        compression: 'DEFLATE',
-        compressionOptions: {
-          level: 6
-        }
-      });
-      
-      console.log('ZIP gerado:', zipBlob.size, 'bytes');
-      
-      if (zipBlob.size === 0) {
-        throw new Error('ZIP vazio gerado');
       }
-      
-      const zipFileName = `arquivos_licitacao_${bidding.processo || 'documentos'}.zip`;
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const zipFileName = `arquivos_${bidding.processo || 'licitacao'}.zip`;
       
       const link = document.createElement('a');
       link.href = URL.createObjectURL(zipBlob);
@@ -135,23 +121,17 @@ const FilesModal: React.FC<FilesModalProps> = ({ bidding, isOpen, onClose }) => 
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      // Libera a memória
       URL.revokeObjectURL(link.href);
-      
-      console.log('Download do ZIP concluído');
+
     } catch (error) {
-      console.error('Erro ao criar ZIP:', error);
-      alert('Erro ao criar arquivo ZIP. Verifique o console para mais detalhes e tente novamente.');
+      console.error('Erro ao criar o ZIP:', error);
+      alert('Ocorreu um erro ao gerar o arquivo ZIP.');
     } finally {
       setIsDownloadingAll(false);
     }
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
+  // --- COMPONENTE VISUAL (JSX) ---
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">

@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { fetchEditais, fetchEditalById, getUniqueStates, getUniqueCities, getUniqueModalities } from '@/services/editaisService';
 import { SearchFilters } from '@/types/bidding';
@@ -27,11 +26,15 @@ export const useStates = () => {
   });
 };
 
-export const useCities = (state?: string) => {
+// ✅ CORRIGIDO: O hook agora aceita um array de estados (string[])
+export const useCities = (states: string[]) => {
   return useQuery({
-    queryKey: ['cities', state],
-    queryFn: () => getUniqueCities(state),
-    enabled: true,
+    // A chave da query agora depende do array para recarregar quando ele muda
+    queryKey: ['cities', states],
+    // A função do serviço é chamada com o array de estados
+    queryFn: () => getUniqueCities(states),
+    // A busca só é ativada se o array de estados não estiver vazio
+    enabled: !!states && states.length > 0,
     staleTime: 60 * 60 * 1000, // 1 hour
   });
 };
