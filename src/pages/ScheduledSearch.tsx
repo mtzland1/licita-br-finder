@@ -9,7 +9,7 @@ import { useScheduledSearchData } from '@/hooks/useScheduledSearchData';
 import { Bidding } from '@/types/bidding';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { utcToZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 
 export type EventType = 'updates' | 'new_publications' | 'proposal_openings' | 'proposal_closings';
@@ -52,9 +52,9 @@ const ScheduledSearch: React.FC = () => {
 
   const formatDateForDisplay = (dateStr: string) => {
     const timeZone = 'America/Sao_Paulo';
-    const date = utcToZonedTime(new Date(dateStr), timeZone);
-    const today = utcToZonedTime(new Date(), timeZone);
-    const yesterday = utcToZonedTime(new Date(), timeZone);
+    const date = toZonedTime(new Date(dateStr), timeZone);
+    const today = toZonedTime(new Date(), timeZone);
+    const yesterday = toZonedTime(new Date(), timeZone);
     yesterday.setDate(yesterday.getDate() - 1);
     
     const todayStr = format(today, 'yyyy-MM-dd');

@@ -6,7 +6,7 @@ import { useFilters } from '@/contexts/FiltersContext';
 import { Bidding } from '@/types/bidding';
 import { ActivitySummary, EventType } from '@/pages/ScheduledSearch';
 import { format, subDays } from 'date-fns';
-import { utcToZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 
 export const useScheduledSearchData = (selectedFilterId: string) => {
   const [activitySummary, setActivitySummary] = useState<ActivitySummary>({});
@@ -21,7 +21,7 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
     
     for (let i = 0; i < 7; i++) {
       const utcDate = subDays(new Date(), i);
-      const brasiliaDate = utcToZonedTime(utcDate, timeZone);
+      const brasiliaDate = toZonedTime(utcDate, timeZone);
       days.push(format(brasiliaDate, 'yyyy-MM-dd'));
     }
     return days;
@@ -85,7 +85,7 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
         // Count updates (data_atualizacao or updated_at)
         const updateDate = edital.data_atualizacao || edital.updated_at;
         if (updateDate) {
-          const brasiliaUpdateDate = utcToZonedTime(new Date(updateDate), timeZone);
+          const brasiliaUpdateDate = toZonedTime(new Date(updateDate), timeZone);
           if (format(brasiliaUpdateDate, 'yyyy-MM-dd') === date) {
             summary[date].updates++;
           }
@@ -93,7 +93,7 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
 
         // Count new publications
         if (edital.data_publicacao_pncp) {
-          const brasiliaPublicationDate = utcToZonedTime(new Date(edital.data_publicacao_pncp), timeZone);
+          const brasiliaPublicationDate = toZonedTime(new Date(edital.data_publicacao_pncp), timeZone);
           if (format(brasiliaPublicationDate, 'yyyy-MM-dd') === date) {
             summary[date].new_publications++;
           }
@@ -101,7 +101,7 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
 
         // Count proposal openings
         if (edital.data_abertura_proposta) {
-          const brasiliaOpeningDate = utcToZonedTime(new Date(edital.data_abertura_proposta), timeZone);
+          const brasiliaOpeningDate = toZonedTime(new Date(edital.data_abertura_proposta), timeZone);
           if (format(brasiliaOpeningDate, 'yyyy-MM-dd') === date) {
             summary[date].proposal_openings++;
           }
@@ -109,7 +109,7 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
 
         // Count proposal closings
         if (edital.data_encerramento_proposta) {
-          const brasiliaClosingDate = utcToZonedTime(new Date(edital.data_encerramento_proposta), timeZone);
+          const brasiliaClosingDate = toZonedTime(new Date(edital.data_encerramento_proposta), timeZone);
           if (format(brasiliaClosingDate, 'yyyy-MM-dd') === date) {
             summary[date].proposal_closings++;
           }
@@ -139,7 +139,7 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
       
       if (!fieldValue) return false;
       
-      const brasiliaDate = utcToZonedTime(new Date(fieldValue as string), timeZone);
+      const brasiliaDate = toZonedTime(new Date(fieldValue as string), timeZone);
       return format(brasiliaDate, 'yyyy-MM-dd') === date;
     });
 
