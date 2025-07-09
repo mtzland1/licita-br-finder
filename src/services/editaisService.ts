@@ -80,68 +80,137 @@ const transformEditalToBidding = (edital: EditaisRow): Bidding => {
   };
 };
 
-// Function to normalize text for smart search (remove accents, convert to lowercase)
+// Function to normalize text (remove accents, convert to lowercase)
 const normalizeText = (text: string): string => {
   return text
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, ''); // Remove accents
+    .replace(/[\u0300-\u036f]/g, ''); // Remove accents and diacritics
 };
 
-// Function to generate all variations of a keyword for smart search
-const generateKeywordVariations = (keyword: string): string[] => {
-  const variations: string[] = [];
-  const normalizedKeyword = normalizeText(keyword);
+// Advanced stemming function for Portuguese
+const stemWord = (word: string): string => {
+  let stem = normalizeText(word);
   
-  // Add original keyword
-  variations.push(keyword);
-  
-  // Add lowercase version
-  if (keyword !== keyword.toLowerCase()) {
-    variations.push(keyword.toLowerCase());
-  }
-  
-  // Add uppercase version
-  if (keyword !== keyword.toUpperCase()) {
-    variations.push(keyword.toUpperCase());
-  }
-  
-  // Add normalized (no accents) version
-  if (normalizedKeyword !== keyword.toLowerCase()) {
-    variations.push(normalizedKeyword);
-  }
-  
-  // Add plural/singular variations for Portuguese
-  const addPluralSingularVariations = (word: string) => {
-    // Add plural variations
-    if (!word.endsWith('s') && !word.endsWith('ões')) {
-      variations.push(word + 's');
-    }
-    if (word.endsWith('ão')) {
-      variations.push(word.slice(0, -2) + 'ões');
-    }
+  // Remove common Portuguese suffixes (in order of priority - longest first)
+  const suffixes = [
+    // Diminutivos e aumentativos
+    'zinho', 'zinha', 'zinhos', 'zinhas',
+    'inho', 'inha', 'inhos', 'inhas',
+    'ão', 'ões', 'ona', 'onas',
     
-    // Add singular variations
-    if (word.endsWith('s') && word.length > 3) {
-      variations.push(word.slice(0, -1));
+    // Adjetivos e advérbios
+    'mente', 'ável', 'ível', 'oso', 'osa', 'osos', 'osas',
+    'ico', 'ica', 'icos', 'icas',
+    'ivo', 'iva', 'ivos', 'ivas',
+    
+    // Verbos (infinitivos, gerúndios, particípios)
+    'ando', 'endo', 'indo',
+    'ado', 'ada', 'ados', 'adas',
+    'ido', 'ida', 'idos', 'idas',
+    'ar', 'er', 'ir',
+    
+    // Substantivos plurais e femininos
+    'ções', 'sões', 'ação', 'são',
+    'ais', 'eis', 'ois', 'uis',
+    'as', 'es', 'is', 'os', 'us',
+    's'
+  ];
+  
+  for (const suffix of suffixes) {
+    if (stem.endsWith(suffix) && stem.length > suffix.length + 2) {
+      stem = stem.slice(0, -suffix.length);
+      break; // Only remove one suffix per word
     }
-    if (word.endsWith('ões')) {
-      variations.push(word.slice(0, -3) + 'ão');
-    }
+  }
+  
+  return stem;
+};
+
+// Generate comprehensive variations of a keyword for smart search
+const generateKeywordVariations = (keyword: string): string[] => {
+  const variations = new Set<string>();
+  const normalizedKeyword = normalizeText(keyword);
+  const stemmedKeyword = stemWord(keyword);
+  
+  // Add original forms
+  variations.add(keyword);
+  variations.add(keyword.toLowerCase());
+  variations.add(keyword.toUpperCase());
+  variations.add(normalizedKeyword);
+  variations.add(stemmedKeyword);
+  
+  // Generate plural/singular variations from the stemmed form
+  const generateInflections = (stem: string) => {
+    const inflections: string[] = [stem];
+    
+    // Add plural variations
+    inflections.push(stem + 's');
+    inflections.push(stem + 'es');
+    inflections.push(stem + 'ões'); // for words ending in -ão
+    inflections.push(stem + 'ais'); // for words ending in -al
+    inflections.push(stem + 'eis'); // for words ending in -el
+    inflections.push(stem + 'is');  // for words ending in -il
+    
+    // Add common verb conjugations
+    inflections.push(stem + 'ar');
+    inflections.push(stem + 'er');
+    inflections.push(stem + 'ir');
+    inflections.push(stem + 'ação');
+    inflections.push(stem + 'são');
+    inflections.push(stem + 'ções');
+    inflections.push(stem + 'sões');
+    
+    // Add adjective variations
+    inflections.push(stem + 'o');
+    inflections.push(stem + 'a');
+    inflections.push(stem + 'os');
+    inflections.push(stem + 'as');
+    
+    return inflections;
   };
   
-  // Apply plural/singular variations to all forms
-  [keyword, keyword.toLowerCase(), normalizedKeyword].forEach(word => {
-    if (word) {
-      addPluralSingularVariations(word);
-    }
-  });
+  // Generate inflections for both normalized and stemmed versions
+  generateInflections(normalizedKeyword).forEach(v => variations.add(v));
+  generateInflections(stemmedKeyword).forEach(v => variations.add(v));
   
-  // Remove duplicates and empty strings
-  return [...new Set(variations.filter(v => v && v.trim()))];
+  // Also add variations with common accent patterns
+  const addAccentVariations = (base: string) => {
+    // Common accent patterns in Portuguese
+    const accentMap: { [key: string]: string[] } = {
+      'a': ['á', 'à', 'ã', 'â'],
+      'e': ['é', 'ê'],
+      'i': ['í'],
+      'o': ['ó', 'ô', 'õ'],
+      'u': ['ú'],
+      'c': ['ç']
+    };
+    
+    let result = [base];
+    
+    for (const [plain, accented] of Object.entries(accentMap)) {
+      const newResults: string[] = [];
+      for (const word of result) {
+        newResults.push(word);
+        for (const accent of accented) {
+          newResults.push(word.replace(new RegExp(plain, 'g'), accent));
+        }
+      }
+      result = newResults;
+    }
+    
+    return result;
+  };
+  
+  // Add accent variations for the main stems
+  addAccentVariations(stemmedKeyword).forEach(v => variations.add(v));
+  addAccentVariations(normalizedKeyword).forEach(v => variations.add(v));
+  
+  // Remove empty strings and very short words (less than 2 characters)
+  return Array.from(variations).filter(v => v && v.trim().length >= 2);
 };
 
-// Function to create search conditions with word boundaries
+// Function to create advanced search conditions with smart stemming
 const createSearchConditions = (keywords: string[], smartSearch: boolean): string[] => {
   const orConditions: string[] = [];
   
@@ -150,22 +219,24 @@ const createSearchConditions = (keywords: string[], smartSearch: boolean): strin
       const k = keyword.trim();
       
       if (smartSearch) {
-        // Smart search: generate all variations
+        // Smart search: generate all variations using advanced stemming
         const variations = generateKeywordVariations(k);
         
         variations.forEach(variation => {
-          // Word boundary conditions for each variation
-          orConditions.push(`objeto_compra.ilike.${variation} %`); // word at start followed by space
-          orConditions.push(`objeto_compra.ilike.% ${variation} %`); // word in middle with spaces
-          orConditions.push(`objeto_compra.ilike.% ${variation}`); // word at end preceded by space
-          orConditions.push(`objeto_compra.ilike.${variation}`); // exact match (single word)
+          // Escape special regex characters for PostgreSQL
+          const escapedVariation = variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          
+          // Use ilike with word boundaries
+          orConditions.push(`objeto_compra.ilike.%${escapedVariation}%`);
+          
+          // Also search in orgao_razao_social for better coverage
+          orConditions.push(`orgao_razao_social.ilike.%${escapedVariation}%`);
         });
       } else {
-        // Normal search: exact keyword match with word boundaries
-        orConditions.push(`objeto_compra.ilike.${k} %`); // word at start followed by space
-        orConditions.push(`objeto_compra.ilike.% ${k} %`); // word in middle with spaces
-        orConditions.push(`objeto_compra.ilike.% ${k}`); // word at end preceded by space
-        orConditions.push(`objeto_compra.ilike.${k}`); // exact match (single word)
+        // Normal search: exact keyword match
+        const escapedKeyword = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        orConditions.push(`objeto_compra.ilike.%${escapedKeyword}%`);
+        orConditions.push(`orgao_razao_social.ilike.%${escapedKeyword}%`);
       }
     }
   });
@@ -173,7 +244,7 @@ const createSearchConditions = (keywords: string[], smartSearch: boolean): strin
   return orConditions;
 };
 
-// Function to generate highlight variations for a keyword
+// Function to generate highlight variations for a keyword (simplified for highlighting)
 export const generateHighlightVariations = (keyword: string, smartSearch: boolean): string[] => {
   if (!smartSearch) {
     return [keyword];
