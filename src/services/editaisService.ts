@@ -86,70 +86,56 @@ export const fetchEditais = async (
   page: number = 1,
   limit: number = 20
 ): Promise<{ data: Bidding[]; total: number }> => {
-  let query = supabase
-    .from('editais')
-    .select('*', { count: 'exact' });
+  let query; // A query inicial será definida dentro da lógica
+  const keywords = (filters?.keywords || '').split(';').map(k => k.trim()).filter(k => k);
 
-  // Apply filters
+  if (filters?.smartSearch || keywords.length === 0) {
+    // BUSCA INTELIGENTE (ou sem palavras-chave)
+    // Inicia a query a partir da tabela, como antes.
+    query = supabase.from('editais').select('*', { count: 'exact' });
+    if (filters?.smartSearch && keywords.length > 0) {
+    const searchQuery = keywords.join(' ');
+
+    // ✅ ADICIONE ESTA LINHA PARA NORMALIZAR A BUSCA
+    const normalizedSearchQuery = searchQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    query = query.textSearch('objeto_compra_padronizado', normalizedSearchQuery, { // Use a variável normalizada
+        type: 'plain',
+        config: 'portuguese'
+    });
+}
+  } else {
+    // ############ CORREÇÃO DEFINITIVA AQUI ############
+    // BUSCA NORMAL (NÃO INTELIGENTE)
+    // Chama a função RPC que criamos no banco de dados.
+    query = supabase
+      .rpc('buscar_editais_por_palavras', { palavras_chave: keywords })
+      .select('*', { count: 'exact' });
+    // #######################################################
+  }
+  
+  // APLICAÇÃO DOS OUTROS FILTROS (não relacionados a keywords)
   if (filters) {
-    if (filters.keywords && filters.keywords.trim()) {
-      const keywords = filters.keywords.split(';').map(k => k.trim()).filter(k => k);
-      
-      if (keywords.length > 0) {
-        if (filters.smartSearch) {
-          // Busca inteligente ATIVADA: usar texto completo na coluna objeto_compra_padronizado
-          const searchQuery = keywords.join(' ');
-          query = query.textSearch('objeto_compra_padronizado', `'${searchQuery}'`, {
-            type: 'plain',
-            config: 'portuguese'
-          });
-        } else {
-          // Busca inteligente DESATIVADA: usar regex com word boundaries case-insensitive
-          const regexConditions = keywords.map(keyword => {
-            // Escapa caracteres especiais do regex e adiciona word boundaries
-            const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            return `objeto_compra.~*.\\y${escapedKeyword}\\y`;
-          });
-          
-          if (regexConditions.length === 1) {
-            query = query.filter('objeto_compra', '~*', `\\y${keywords[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\y`);
-          } else {
-            // Para múltiplas palavras-chave, usar OR com cada uma
-            const orConditions = keywords.map(keyword => {
-              const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              return `objeto_compra.~*.\\y${escapedKeyword}\\y`;
-            });
-            query = query.or(orConditions.join(','));
-          }
-        }
-      }
-    }
-
     if (filters.states && filters.states.length > 0) {
       query = query.in('uf_sigla', filters.states);
     }
-
     if (filters.cities && filters.cities.length > 0) {
       query = query.in('municipio_nome', filters.cities);
     }
-
     if (filters.modalities && filters.modalities.length > 0) {
       query = query.in('modalidade_nome', filters.modalities);
     }
-
     if (filters.startDate) {
       query = query.gte('data_publicacao_pncp', filters.startDate.toISOString());
     }
-
     if (filters.endDate) {
       query = query.lte('data_publicacao_pncp', filters.endDate.toISOString());
     }
   }
 
-  // Pagination
+  // Paginação e Ordenação (funcionam normalmente)
   const from = (page - 1) * limit;
   const to = from + limit - 1;
-
   query = query
     .range(from, to)
     .order('data_publicacao_pncp', { ascending: false });
