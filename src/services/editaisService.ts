@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { SearchFilters, Bidding } from '@/types/bidding';
 import { Tables } from '@/integrations/supabase/types';
@@ -96,32 +95,12 @@ export const fetchEditais = async (
       const keywords = filters.keywords.split(';').map(k => k.trim()).filter(k => k);
       
       if (keywords.length > 0) {
-        if (filters.smartSearch) {
-          // Busca inteligente ATIVADA: usar texto completo na coluna objeto_compra_padronizado
-          const searchQuery = keywords.join(' ');
-          query = query.textSearch('objeto_compra_padronizado', `'${searchQuery}'`, {
-            type: 'plain',
-            config: 'portuguese'
-          });
-        } else {
-          // Busca inteligente DESATIVADA: usar regex com word boundaries case-insensitive
-          const regexConditions = keywords.map(keyword => {
-            // Escapa caracteres especiais do regex e adiciona word boundaries
-            const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            return `objeto_compra.~*.\\y${escapedKeyword}\\y`;
-          });
-          
-          if (regexConditions.length === 1) {
-            query = query.filter('objeto_compra', '~*', `\\y${keywords[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\y`);
-          } else {
-            // Para múltiplas palavras-chave, usar OR com cada uma
-            const orConditions = keywords.map(keyword => {
-              const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              return `objeto_compra.~*.\\y${escapedKeyword}\\y`;
-            });
-            query = query.or(orConditions.join(','));
-          }
-        }
+        // Sempre usar busca inteligente: texto completo na coluna objeto_compra_padronizado
+        const searchQuery = keywords.join(' ');
+        query = query.textSearch('objeto_compra_padronizado', `'${searchQuery}'`, {
+          type: 'plain',
+          config: 'portuguese'
+        });
       }
     }
 

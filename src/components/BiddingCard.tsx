@@ -12,28 +12,12 @@ import BiddingObjectModal from './BiddingObjectModal';
 
 interface BiddingCardProps {
   bidding: Bidding;
-  highlightKeywords?: string[];
 }
 
-const BiddingCard: React.FC<BiddingCardProps> = ({ bidding, highlightKeywords = [] }) => {
+const BiddingCard: React.FC<BiddingCardProps> = ({ bidding }) => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const favorite = isFavorite(bidding._id);
-
-  const highlightText = (text: string, keywords: string[]) => {
-    if (!keywords.length) return text;
-    
-    let highlightedText = text;
-    keywords.forEach((keyword, index) => {
-      if (keyword.trim()) {
-        const colors = ['bg-yellow-200', 'bg-green-200', 'bg-blue-200', 'bg-pink-200', 'bg-purple-200'];
-        const color = colors[index % colors.length];
-        const regex = new RegExp(`(${keyword.trim()})`, 'gi');
-        highlightedText = highlightedText.replace(regex, `<mark class="${color} px-1 rounded">$1</mark>`);
-      }
-    });
-    return highlightedText;
-  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -75,11 +59,7 @@ const BiddingCard: React.FC<BiddingCardProps> = ({ bidding, highlightKeywords = 
               
               <div className="space-y-2">
                 <h3 className="font-semibold text-gray-900 text-lg leading-tight">
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: highlightText(truncateText(bidding.objetoCompra, 100), highlightKeywords)
-                    }}
-                  />
+                  {truncateText(bidding.objetoCompra, 100)}
                   {shouldShowReadMore && (
                     <Button
                       variant="link"
@@ -182,7 +162,6 @@ const BiddingCard: React.FC<BiddingCardProps> = ({ bidding, highlightKeywords = 
         bidding={bidding}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        highlightKeywords={highlightKeywords}
       />
     </>
   );

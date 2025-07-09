@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -34,7 +33,7 @@ const Search = () => {
     states: [],
     modalities: [],
     cities: [],
-    smartSearch: true,
+    smartSearch: true, // Sempre true, mas mantém para compatibilidade
   });
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -138,15 +137,8 @@ const Search = () => {
             />
           </div>
           
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="smart-search"
-              checked={filters.smartSearch}
-              onCheckedChange={(checked) => updateFilter('smartSearch', checked)}
-            />
-            <Label htmlFor="smart-search" className="text-sm">
-              Busca Inteligente (ignora acentos, trata plurais/singulares)
-            </Label>
+          <div className="text-sm text-gray-600">
+            <p>💡 A busca inteligente está sempre ativa: ignora acentos e trata plurais/singulares automaticamente</p>
           </div>
         </CardContent>
       </Card>
@@ -353,7 +345,6 @@ const Search = () => {
               <BiddingCard 
                 key={bidding._id} 
                 bidding={bidding}
-                highlightKeywords={filters.keywords.split(';').map(k => k.trim()).filter(k => k)}
               />
             ))}
             
