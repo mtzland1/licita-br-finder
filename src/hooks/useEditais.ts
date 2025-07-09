@@ -31,6 +31,7 @@ export const useCities = (state?: string) => {
   return useQuery({
     queryKey: ['cities', state],
     queryFn: () => getUniqueCities(state),
+    enabled: true,
     staleTime: 60 * 60 * 1000, // 1 hour
   });
 };

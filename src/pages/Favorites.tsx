@@ -5,15 +5,19 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import BiddingCard from '@/components/BiddingCard';
 import { useFavorites } from '@/contexts/FavoritesContext';
-import { allMockBiddings } from '@/data/mockBiddings';
-import { Heart, Clock, CheckCircle } from 'lucide-react';
+import { useEditais } from '@/hooks/useEditais';
+import { Heart, Clock, CheckCircle, Loader2 } from 'lucide-react';
 
 const Favorites = () => {
   const { favorites } = useFavorites();
-
+  
+  // Create a filter that includes all editais so we can filter by favorites locally
+  const { data: allEditaisData, isLoading } = useEditais(undefined, 1, 1000);
+  
   const favoriteBiddings = useMemo(() => {
-    return allMockBiddings.filter(bidding => favorites.includes(bidding._id));
-  }, [favorites]);
+    if (!allEditaisData?.data) return [];
+    return allEditaisData.data.filter(bidding => favorites.includes(bidding._id));
+  }, [allEditaisData?.data, favorites]);
 
   const openFavorites = useMemo(() => {
     return favoriteBiddings.filter(bidding => bidding.status === 'aberto');
@@ -22,6 +26,25 @@ const Favorites = () => {
   const closedFavorites = useMemo(() => {
     return favoriteBiddings.filter(bidding => bidding.status === 'encerrado');
   }, [favoriteBiddings]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Favoritos</h1>
+          <p className="text-gray-600 mt-1">
+            Gerencie suas licitações favoritas organizadas por status
+          </p>
+        </div>
+        <Card>
+          <CardContent className="text-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-gray-600">Carregando favoritos...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -35,7 +35,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const { data, error } = await supabase
         .from('favorites')
-        .select('bidding_id')
+        .select('edital_id')
         .eq('user_id', user.id);
 
       if (error) {
@@ -46,7 +46,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           variant: "destructive",
         });
       } else {
-        setFavorites(data.map(fav => fav.bidding_id));
+        setFavorites(data.map(fav => fav.edital_id));
       }
     } catch (error) {
       console.error('Erro ao carregar favoritos:', error);
@@ -55,7 +55,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  const toggleFavorite = async (biddingId: string) => {
+  const toggleFavorite = async (editalId: string) => {
     if (!user) {
       toast({
         title: "Login necessário",
@@ -65,7 +65,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return;
     }
 
-    const isFav = favorites.includes(biddingId);
+    const isFav = favorites.includes(editalId);
 
     try {
       if (isFav) {
@@ -74,7 +74,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           .from('favorites')
           .delete()
           .eq('user_id', user.id)
-          .eq('bidding_id', biddingId);
+          .eq('edital_id', editalId);
 
         if (error) {
           console.error('Erro ao remover favorito:', error);
@@ -84,7 +84,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             variant: "destructive",
           });
         } else {
-          setFavorites(prev => prev.filter(fav => fav !== biddingId));
+          setFavorites(prev => prev.filter(fav => fav !== editalId));
           toast({
             title: "Favorito removido",
             description: "O edital foi removido dos seus favoritos",
@@ -96,7 +96,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           .from('favorites')
           .insert({
             user_id: user.id,
-            bidding_id: biddingId
+            edital_id: editalId
           });
 
         if (error) {
@@ -107,7 +107,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             variant: "destructive",
           });
         } else {
-          setFavorites(prev => [...prev, biddingId]);
+          setFavorites(prev => [...prev, editalId]);
           toast({
             title: "Favorito adicionado",
             description: "O edital foi adicionado aos seus favoritos",

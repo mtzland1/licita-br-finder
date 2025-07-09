@@ -5,40 +5,35 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import BiddingCard from '@/components/BiddingCard';
-import { allMockBiddings } from '@/data/mockBiddings';
-import { Search, TrendingUp, Clock, DollarSign, FileText } from 'lucide-react';
+import { useEditais } from '@/hooks/useEditais';
+import { SearchFilters } from '@/types/bidding';
+import { Search, TrendingUp, Clock, DollarSign, FileText, Loader2 } from 'lucide-react';
 
 const Dashboard = () => {
   const [quickSearch, setQuickSearch] = useState('');
 
-  // Filtrar licitações mais relevantes (abertas e recentes)
-  const relevantBiddings = useMemo(() => {
-    let filtered = allMockBiddings
-      .filter(bidding => bidding.status === 'aberto')
-      .sort((a, b) => new Date(b.dataPublicacaoPncp).getTime() - new Date(a.dataPublicacaoPncp).getTime())
-      .slice(0, 50);
+  // Create filters for the query
+  const filters: SearchFilters = useMemo(() => ({
+    keywords: quickSearch,
+    states: [],
+    modalities: [],
+    cities: [],
+    smartSearch: false,
+  }), [quickSearch]);
 
-    if (quickSearch.trim()) {
-      const keywords = quickSearch.toLowerCase().split(';').map(k => k.trim());
-      filtered = filtered.filter(bidding =>
-        keywords.some(keyword =>
-          bidding.objetoCompra.toLowerCase().includes(keyword) ||
-          bidding.orgaoEntidade.razaoSocial.toLowerCase().includes(keyword) ||
-          bidding.unidadeOrgao.municipioNome.toLowerCase().includes(keyword)
-        )
-      );
-    }
+  // Fetch editais data
+  const { data: editaisData, isLoading, error } = useEditais(filters, 1, 50);
 
-    return filtered;
-  }, [quickSearch]);
+  const editais = editaisData?.data || [];
+  const total = editaisData?.total || 0;
 
   const statistics = useMemo(() => {
-    const openBiddings = allMockBiddings.filter(b => b.status === 'aberto').length;
-    const closedBiddings = allMockBiddings.filter(b => b.status === 'encerrado').length;
-    const totalValue = allMockBiddings
+    const openBiddings = editais.filter(b => b.status === 'aberto').length;
+    const closedBiddings = editais.filter(b => b.status === 'encerrado').length;
+    const totalValue = editais
       .filter(b => b.status === 'aberto')
       .reduce((sum, b) => sum + b.valorTotalEstimado, 0);
-    const expiringSoon = allMockBiddings.filter(b => {
+    const expiringSoon = editais.filter(b => {
       if (b.status !== 'aberto') return false;
       const now = new Date();
       const endDate = new Date(b.dataEncerramentoProposta);
@@ -47,7 +42,7 @@ const Dashboard = () => {
     }).length;
 
     return { openBiddings, closedBiddings, totalValue, expiringSoon };
-  }, []);
+  }, [editais]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -57,6 +52,24 @@ const Dashboard = () => {
       maximumFractionDigits: 0,
     }).format(value);
   };
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1">
+            Acompanhe as licitações mais relevantes e recentes
+          </p>
+        </div>
+        <Card>
+          <CardContent className="text-center py-8">
+            <p className="text-red-600">Erro ao carregar licitações. Tente novamente mais tarde.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -122,7 +135,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-700">
-              {statistics.openBiddings + statistics.closedBiddings}
+              {total}
             </div>
             <p className="text-xs text-muted-foreground">
               Processos cadastrados
@@ -164,11 +177,18 @@ const Dashboard = () => {
             Licitações Mais Relevantes
           </h2>
           <Badge variant="outline">
-            {relevantBiddings.length} de {statistics.openBiddings} abertas
+            {editais.length} de {total} resultados
           </Badge>
         </div>
 
-        {relevantBiddings.length === 0 ? (
+        {isLoading ? (
+          <Card>
+            <CardContent className="text-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <p className="text-gray-600">Carregando licitações...</p>
+            </CardContent>
+          </Card>
+        ) : editais.length === 0 ? (
           <Card>
             <CardContent className="text-center py-8">
               <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -178,14 +198,14 @@ const Dashboard = () => {
               <p className="text-gray-600">
                 {quickSearch.trim() 
                   ? 'Tente ajustar os termos de busca ou limpar o filtro.'
-                  : 'Não há licitações abertas no momento.'
+                  : 'Não há licitações disponíveis no momento.'
                 }
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {relevantBiddings.map((bidding) => (
+            {editais.map((bidding) => (
               <BiddingCard 
                 key={bidding._id} 
                 bidding={bidding}
