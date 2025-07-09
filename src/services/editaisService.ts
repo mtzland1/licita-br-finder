@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { SearchFilters, Bidding } from '@/types/bidding';
 import { Tables } from '@/integrations/supabase/types';
@@ -81,6 +80,72 @@ const transformEditalToBidding = (edital: EditaisRow): Bidding => {
   };
 };
 
+// Function to normalize text for smart search (remove accents, convert to lowercase)
+const normalizeText = (text: string): string => {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, ''); // Remove accents
+};
+
+// Function to create search conditions with word boundaries
+const createSearchConditions = (keywords: string[], smartSearch: boolean): string[] => {
+  const orConditions: string[] = [];
+  
+  keywords.forEach(keyword => {
+    if (keyword.trim()) {
+      const k = keyword.trim();
+      
+      if (smartSearch) {
+        // Smart search: normalize the keyword and search for variations
+        const normalizedKeyword = normalizeText(k);
+        
+        // Create multiple variations to handle accents and case
+        const variations = [
+          k, // original
+          k.toLowerCase(), // lowercase
+          k.toUpperCase(), // uppercase
+          normalizedKeyword, // without accents
+        ];
+        
+        // Add plural/singular variations for Portuguese
+        if (!k.endsWith('s') && !k.endsWith('ões')) {
+          variations.push(k + 's'); // add plural
+          variations.push(k + 'ões'); // add plural for words ending in ão
+        }
+        if (k.endsWith('s') && k.length > 3) {
+          variations.push(k.slice(0, -1)); // remove s for potential singular
+        }
+        if (k.endsWith('ões')) {
+          variations.push(k.slice(0, -3) + 'ão'); // convert ões to ão
+        }
+        if (k.endsWith('ão')) {
+          variations.push(k.slice(0, -2) + 'ões'); // convert ão to ões
+        }
+        
+        // Remove duplicates
+        const uniqueVariations = [...new Set(variations)];
+        
+        uniqueVariations.forEach(variation => {
+          // Word boundary conditions for each variation
+          orConditions.push(`objeto_compra.ilike.${variation} %`); // word at start followed by space
+          orConditions.push(`objeto_compra.ilike.% ${variation} %`); // word in middle with spaces
+          orConditions.push(`objeto_compra.ilike.% ${variation}`); // word at end preceded by space
+          orConditions.push(`objeto_compra.ilike.${variation}`); // exact match (single word)
+        });
+      } else {
+        // Normal search: exact keyword match with word boundaries
+        orConditions.push(`objeto_compra.ilike.${k} %`); // word at start followed by space
+        orConditions.push(`objeto_compra.ilike.% ${k} %`); // word in middle with spaces
+        orConditions.push(`objeto_compra.ilike.% ${k}`); // word at end preceded by space
+        orConditions.push(`objeto_compra.ilike.${k}`); // exact match (single word)
+      }
+    }
+  });
+  
+  return orConditions;
+};
+
 export const fetchEditais = async (
   filters?: SearchFilters,
   page: number = 1,
@@ -96,37 +161,10 @@ export const fetchEditais = async (
       const keywords = filters.keywords.split(';').map(k => k.trim()).filter(k => k);
       
       if (keywords.length > 0) {
-        // Create search conditions for objeto_compra only, using word boundaries
-        const searchConditions: string[] = [];
+        const orConditions = createSearchConditions(keywords, filters.smartSearch || false);
         
-        keywords.forEach(keyword => {
-          if (keyword.trim()) {
-            // Use regex with word boundaries to match complete words only
-            // This prevents "ração" from matching "administração"
-            const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            searchConditions.push(`objeto_compra.ilike.*\\m${escapedKeyword}\\M*`);
-          }
-        });
-        
-        if (searchConditions.length > 0) {
-          // Since PostgREST regex might not work reliably, let's use a different approach
-          // We'll filter using multiple ilike conditions that simulate word boundaries
-          const orConditions: string[] = [];
-          
-          keywords.forEach(keyword => {
-            if (keyword.trim()) {
-              const k = keyword.trim();
-              // Check for word at start, middle, or end of string
-              orConditions.push(`objeto_compra.ilike.${k} %`); // word at start followed by space
-              orConditions.push(`objeto_compra.ilike.% ${k} %`); // word in middle with spaces
-              orConditions.push(`objeto_compra.ilike.% ${k}`); // word at end preceded by space
-              orConditions.push(`objeto_compra.ilike.${k}`); // exact match (single word)
-            }
-          });
-          
-          if (orConditions.length > 0) {
-            query = query.or(orConditions.join(','));
-          }
+        if (orConditions.length > 0) {
+          query = query.or(orConditions.join(','));
         }
       }
     }
