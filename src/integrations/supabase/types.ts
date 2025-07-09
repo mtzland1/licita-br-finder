@@ -176,6 +176,135 @@ export type Database = {
         }
         Relationships: []
       }
+      controle_carga: {
+        Row: {
+          created_at: string | null
+          data_checkpoint: string | null
+          nome: string
+          status: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_checkpoint?: string | null
+          nome: string
+          status?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_checkpoint?: string | null
+          nome?: string
+          status?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      editais: {
+        Row: {
+          amparo_legal_codigo: number | null
+          amparo_legal_nome: string | null
+          ano_compra: number | null
+          arquivos: Json | null
+          codigo_ibge: string | null
+          codigo_unidade: string | null
+          created_at: string | null
+          data_abertura_proposta: string | null
+          data_atualizacao: string | null
+          data_encerramento_proposta: string | null
+          data_extracao: string | null
+          data_publicacao_pncp: string | null
+          id: string
+          informacao_complementar: string | null
+          modalidade_id: number | null
+          modalidade_nome: string | null
+          municipio_nome: string | null
+          nome_unidade: string | null
+          numero_controle_pncp: string | null
+          objeto_compra: string | null
+          orgao_cnpj: string | null
+          orgao_esfera_id: string | null
+          orgao_poder_id: string | null
+          orgao_razao_social: string | null
+          sequencial_compra: number | null
+          situacao_compra_id: number | null
+          situacao_compra_nome: string | null
+          srp: boolean | null
+          status: string
+          uf_sigla: string | null
+          updated_at: string | null
+          valor_total_estimado: number | null
+        }
+        Insert: {
+          amparo_legal_codigo?: number | null
+          amparo_legal_nome?: string | null
+          ano_compra?: number | null
+          arquivos?: Json | null
+          codigo_ibge?: string | null
+          codigo_unidade?: string | null
+          created_at?: string | null
+          data_abertura_proposta?: string | null
+          data_atualizacao?: string | null
+          data_encerramento_proposta?: string | null
+          data_extracao?: string | null
+          data_publicacao_pncp?: string | null
+          id: string
+          informacao_complementar?: string | null
+          modalidade_id?: number | null
+          modalidade_nome?: string | null
+          municipio_nome?: string | null
+          nome_unidade?: string | null
+          numero_controle_pncp?: string | null
+          objeto_compra?: string | null
+          orgao_cnpj?: string | null
+          orgao_esfera_id?: string | null
+          orgao_poder_id?: string | null
+          orgao_razao_social?: string | null
+          sequencial_compra?: number | null
+          situacao_compra_id?: number | null
+          situacao_compra_nome?: string | null
+          srp?: boolean | null
+          status?: string
+          uf_sigla?: string | null
+          updated_at?: string | null
+          valor_total_estimado?: number | null
+        }
+        Update: {
+          amparo_legal_codigo?: number | null
+          amparo_legal_nome?: string | null
+          ano_compra?: number | null
+          arquivos?: Json | null
+          codigo_ibge?: string | null
+          codigo_unidade?: string | null
+          created_at?: string | null
+          data_abertura_proposta?: string | null
+          data_atualizacao?: string | null
+          data_encerramento_proposta?: string | null
+          data_extracao?: string | null
+          data_publicacao_pncp?: string | null
+          id?: string
+          informacao_complementar?: string | null
+          modalidade_id?: number | null
+          modalidade_nome?: string | null
+          municipio_nome?: string | null
+          nome_unidade?: string | null
+          numero_controle_pncp?: string | null
+          objeto_compra?: string | null
+          orgao_cnpj?: string | null
+          orgao_esfera_id?: string | null
+          orgao_poder_id?: string | null
+          orgao_razao_social?: string | null
+          sequencial_compra?: number | null
+          situacao_compra_id?: number | null
+          situacao_compra_nome?: string | null
+          srp?: boolean | null
+          status?: string
+          uf_sigla?: string | null
+          updated_at?: string | null
+          valor_total_estimado?: number | null
+        }
+        Relationships: []
+      }
       favorites: {
         Row: {
           bidding_id: string
