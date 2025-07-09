@@ -16,6 +16,7 @@ import {
   CommandItem, 
   CommandList 
 } from '@/components/ui/command';
+
 import { 
   Pagination,
   PaginationContent,
@@ -28,6 +29,7 @@ import BiddingCard from '@/components/BiddingCard';
 import { useEditais, useStates, useCities, useModalities } from '@/hooks/useEditais';
 import { SearchFilters } from '@/types/bidding';
 import { Search as SearchIcon, Filter, Calendar as CalendarIcon, X, Loader2, SlidersHorizontal, MapPin, Building, ChevronsUpDown, Check } from 'lucide-react';
+
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -44,6 +46,7 @@ const Search = () => {
   });
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [citySearchTerm, setCitySearchTerm] = useState('');
 
   // Fetch filter options using the corrected hooks
   const { data: availableStates = [] } = useStates(); // Busca todos os estados da API
@@ -57,6 +60,14 @@ const Search = () => {
   const editais = editaisData?.data || [];
   const total = editaisData?.total || 0;
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
+
+  // Filter cities based on search term
+  const filteredCities = useMemo(() => {
+    if (!citySearchTerm.trim()) return availableCities;
+    return availableCities.filter(city => 
+      city.toLowerCase().includes(citySearchTerm.toLowerCase())
+    );
+  }, [availableCities, citySearchTerm]);
 
   const updateFilter = (key: keyof SearchFilters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -87,11 +98,13 @@ const Search = () => {
       cities: [] // Limpa cidades ao selecionar todos os estados
     }));
     setCurrentPage(1);
+
   };
 
   const selectAllCities = () => {
     const relevantCities = filters.states.length > 0 ? availableCities : [];
     const allSelected = filters.cities.length === relevantCities.length && relevantCities.length > 0;
+
     setFilters(prev => ({
       ...prev,
       cities: allSelected ? [] : [...relevantCities]
@@ -107,6 +120,7 @@ const Search = () => {
       cities: [],
       smartSearch: true,
     });
+    setCitySearchTerm('');
     setCurrentPage(1);
   };
 
@@ -484,6 +498,7 @@ const Search = () => {
                           <Badge key={city} variant="secondary" className="text-xs">
                             {city}
                             <button onClick={() => toggleArrayFilter('cities', city)} className="ml-1.5 rounded-full hover:bg-gray-300/50" >
+
                               <X className="h-3 w-3" />
                             </button>
                           </Badge>
@@ -498,6 +513,7 @@ const Search = () => {
                       : "Selecione um estado para ver as cidades."
                     }
                   </div>
+
                 )}
               </div>
 
@@ -513,6 +529,7 @@ const Search = () => {
                         onCheckedChange={() => toggleArrayFilter('modalities', modality)}
                       />
                       <Label htmlFor={`modality-${modality}`} className="text-sm cursor-pointer font-normal">
+
                         {modality}
                       </Label>
                     </div>
