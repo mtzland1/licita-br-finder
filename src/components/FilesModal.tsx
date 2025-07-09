@@ -54,26 +54,79 @@ const FilesModal: React.FC<FilesModalProps> = ({ bidding, isOpen, onClose }) => 
       const { default: JSZip } = await import('jszip');
       const zip = new JSZip();
       
+      console.log(`Iniciando download de ${bidding.arquivos.length} arquivos...`);
+      
       // Adiciona todos os arquivos ao ZIP
       const downloadPromises = bidding.arquivos.map(async (arquivo, index) => {
         try {
-          const response = await fetch(arquivo.url);
-          if (!response.ok) throw new Error(`Erro ao baixar ${arquivo.titulo}`);
+          console.log(`Processando arquivo ${index + 1}: ${arquivo.titulo}`);
+          
+          // Tenta fazer fetch do arquivo
+          const response = await fetch(arquivo.url, {
+            mode: 'cors',
+            credentials: 'omit'
+          });
+          
+          if (!response.ok) {
+            console.warn(`Erro HTTP ${response.status} ao baixar ${arquivo.titulo}`);
+            // Se não conseguir fazer fetch, adiciona um arquivo de texto com as informações
+            const infoText = `Arquivo: ${arquivo.titulo || 'Sem título'}\nURL: ${arquivo.url}\nTipo: ${arquivo.tipoDocumentoDescricao || 'Não especificado'}\nData: ${format(new Date(arquivo.dataPublicacaoPncp), 'dd/MM/yyyy', { locale: ptBR })}`;
+            zip.file(`${arquivo.titulo || `documento_${index + 1}`}_info.txt`, infoText);
+            return;
+          }
           
           const blob = await response.blob();
-          const fileName = arquivo.titulo || `documento_${index + 1}`;
+          console.log(`Blob criado para ${arquivo.titulo}:`, blob.size, 'bytes');
+          
+          // Garante que o fileName seja válido
+          let fileName = arquivo.titulo || `documento_${index + 1}`;
+          // Remove caracteres inválidos do nome do arquivo
+          fileName = fileName.replace(/[<>:"/\\|?*]/g, '_');
+          
+          // Adiciona extensão se não houver
+          if (!fileName.includes('.')) {
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('pdf')) {
+              fileName += '.pdf';
+            } else if (contentType.includes('doc')) {
+              fileName += '.doc';
+            } else if (contentType.includes('image')) {
+              fileName += '.jpg';
+            } else {
+              fileName += '.bin';
+            }
+          }
           
           // Adiciona o arquivo ao ZIP
           zip.file(fileName, blob);
+          console.log(`Arquivo adicionado ao ZIP: ${fileName}`);
+          
         } catch (error) {
           console.error(`Erro ao processar arquivo ${arquivo.titulo}:`, error);
+          // Em caso de erro, adiciona um arquivo de texto com as informações
+          const errorText = `ERRO AO BAIXAR ARQUIVO\n\nArquivo: ${arquivo.titulo || 'Sem título'}\nURL: ${arquivo.url}\nErro: ${error}\n\nVocê pode tentar baixar manualmente usando a URL acima.`;
+          zip.file(`ERRO_${arquivo.titulo || `documento_${index + 1}`}.txt`, errorText);
         }
       });
       
       await Promise.all(downloadPromises);
+      console.log('Todos os arquivos processados, gerando ZIP...');
       
       // Gera o ZIP e faz o download
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const zipBlob = await zip.generateAsync({ 
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: {
+          level: 6
+        }
+      });
+      
+      console.log('ZIP gerado:', zipBlob.size, 'bytes');
+      
+      if (zipBlob.size === 0) {
+        throw new Error('ZIP vazio gerado');
+      }
+      
       const zipFileName = `arquivos_licitacao_${bidding.processo || 'documentos'}.zip`;
       
       const link = document.createElement('a');
@@ -85,9 +138,11 @@ const FilesModal: React.FC<FilesModalProps> = ({ bidding, isOpen, onClose }) => 
       
       // Libera a memória
       URL.revokeObjectURL(link.href);
+      
+      console.log('Download do ZIP concluído');
     } catch (error) {
       console.error('Erro ao criar ZIP:', error);
-      alert('Erro ao criar arquivo ZIP. Tente novamente.');
+      alert('Erro ao criar arquivo ZIP. Verifique o console para mais detalhes e tente novamente.');
     } finally {
       setIsDownloadingAll(false);
     }

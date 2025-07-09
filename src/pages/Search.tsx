@@ -20,7 +20,7 @@ import {
 import BiddingCard from '@/components/BiddingCard';
 import { useEditais, useStates, useCities, useModalities } from '@/hooks/useEditais';
 import { SearchFilters } from '@/types/bidding';
-import { Search as SearchIcon, Filter, ChevronDown, Calendar as CalendarIcon, X, Loader2 } from 'lucide-react';
+import { Search as SearchIcon, Filter, ChevronDown, Calendar as CalendarIcon, X, Loader2, SlidersHorizontal } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -116,7 +116,7 @@ const Search = () => {
         </p>
       </div>
 
-      {/* Busca por Palavras-chave */}
+      {/* Busca por Palavras-chave com Filtros Avançados */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -128,13 +128,33 @@ const Search = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-4">
+          <div className="flex gap-2">
             <Input
               placeholder="Ex: equipamentos; informática; hospital"
               value={filters.keywords}
               onChange={(e) => updateFilter('keywords', e.target.value)}
               className="flex-1"
             />
+            <Button
+              variant="outline"
+              size="default"
+              onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              <span className="hidden sm:inline">Filtros</span>
+              {hasActiveFilters && (
+                <Badge variant="secondary" className="ml-1 px-2 py-0 text-xs">
+                  {[
+                    filters.states.length,
+                    filters.modalities.length,
+                    filters.cities.length,
+                    filters.startDate ? 1 : 0,
+                    filters.endDate ? 1 : 0
+                  ].reduce((a, b) => a + b, 0)}
+                </Badge>
+              )}
+            </Button>
           </div>
           
           <div className="text-sm text-gray-600">
@@ -144,32 +164,18 @@ const Search = () => {
       </Card>
 
       {/* Filtros Avançados */}
-      <Card>
-        <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
-          <CollapsibleTrigger asChild>
-            <CardHeader className="hover:bg-gray-50 cursor-pointer">
+      <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+        <CollapsibleContent>
+          <Card>
+            <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Filter className="h-5 w-5" />
                   Filtros Avançados
-                  {hasActiveFilters && (
-                    <Badge variant="secondary" className="ml-2">
-                      {[
-                        filters.states.length,
-                        filters.modalities.length,
-                        filters.cities.length,
-                        filters.startDate ? 1 : 0,
-                        filters.endDate ? 1 : 0
-                      ].reduce((a, b) => a + b, 0)} ativos
-                    </Badge>
-                  )}
                 </div>
-                <ChevronDown className={cn("h-4 w-4 transition-transform", isFiltersOpen && "rotate-180")} />
               </CardTitle>
             </CardHeader>
-          </CollapsibleTrigger>
-          
-          <CollapsibleContent>
+            
             <CardContent className="space-y-6">
               {/* Estados */}
               <div>
@@ -305,9 +311,9 @@ const Search = () => {
                 </Button>
               )}
             </CardContent>
-          </CollapsibleContent>
-        </Collapsible>
-      </Card>
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Resultados */}
       <div>
