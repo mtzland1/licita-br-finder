@@ -162,54 +162,45 @@ export const fetchEditalById = async (id: string): Promise<Bidding | null> => {
 };
 
 export const getUniqueStates = async (): Promise<string[]> => {
-  const { data, error } = await supabase
-    .from('editais')
-    .select('uf_sigla')
-    .not('uf_sigla', 'is', null)
-    .order('uf_sigla');
+  // Chama a função 'get_unique_states' que criamos no banco de dados
+  const { data, error } = await supabase.rpc('get_unique_states');
 
   if (error) {
-    console.error('Error fetching states:', error);
+    console.error('Error fetching unique states via RPC:', error);
     return [];
   }
-
-  const uniqueStates = [...new Set(data.map(item => item.uf_sigla).filter(Boolean))];
-  return uniqueStates;
+  
+  // O resultado já vem como [{ uf_sigla: 'AC' }, { uf_sigla: 'AM' }, ...]
+  // Só precisamos mapear para um array de strings.
+  return data ? data.map(item => item.uf_sigla) : [];
 };
 
-export const getUniqueCities = async (state?: string): Promise<string[]> => {
-  let query = supabase
-    .from('editais')
-    .select('municipio_nome')
-    .not('municipio_nome', 'is', null);
-
-  if (state) {
-    query = query.eq('uf_sigla', state);
-  }
-
-  const { data, error } = await query.order('municipio_nome');
-
-  if (error) {
-    console.error('Error fetching cities:', error);
+export const getUniqueCities = async (states: string[]): Promise<string[]> => {
+  // Se o array de estados estiver vazio, não faz sentido consultar
+  if (!states || states.length === 0) {
     return [];
   }
 
-  const uniqueCities = [...new Set(data.map(item => item.municipio_nome).filter(Boolean))];
-  return uniqueCities;
+  // Passamos o array de estados como parâmetro para a função RPC
+  const { data, error } = await supabase.rpc('get_unique_cities', {
+    p_states: states
+  });
+
+  if (error) {
+    console.error('Error fetching unique cities via RPC:', error);
+    return [];
+  }
+
+  return data ? data.map(item => item.municipio_nome) : [];
 };
 
 export const getUniqueModalities = async (): Promise<string[]> => {
-  const { data, error } = await supabase
-    .from('editais')
-    .select('modalidade_nome')
-    .not('modalidade_nome', 'is', null)
-    .order('modalidade_nome');
+  const { data, error } = await supabase.rpc('get_unique_modalities');
 
   if (error) {
-    console.error('Error fetching modalities:', error);
+    console.error('Error fetching unique modalities via RPC:', error);
     return [];
   }
 
-  const uniqueModalities = [...new Set(data.map(item => item.modalidade_nome).filter(Boolean))];
-  return uniqueModalities;
+  return data ? data.map(item => item.modalidade_nome) : [];
 };
