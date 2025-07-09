@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { SearchFilters, Bidding } from '@/types/bidding';
 import { Tables } from '@/integrations/supabase/types';
@@ -95,21 +96,37 @@ export const fetchEditais = async (
       const keywords = filters.keywords.split(';').map(k => k.trim()).filter(k => k);
       
       if (keywords.length > 0) {
-        // Create search conditions using simple ilike for better compatibility
+        // Create search conditions for objeto_compra only, using word boundaries
         const searchConditions: string[] = [];
         
         keywords.forEach(keyword => {
           if (keyword.trim()) {
-            // Search in objeto_compra, orgao_razao_social, and informacao_complementar
-            searchConditions.push(`objeto_compra.ilike.%${keyword}%`);
-            searchConditions.push(`orgao_razao_social.ilike.%${keyword}%`);
-            searchConditions.push(`informacao_complementar.ilike.%${keyword}%`);
+            // Use regex with word boundaries to match complete words only
+            // This prevents "ração" from matching "administração"
+            const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            searchConditions.push(`objeto_compra.ilike.*\\m${escapedKeyword}\\M*`);
           }
         });
         
         if (searchConditions.length > 0) {
-          // Use proper PostgREST OR syntax with dots instead of commas
-          query = query.or(searchConditions.join(','));
+          // Since PostgREST regex might not work reliably, let's use a different approach
+          // We'll filter using multiple ilike conditions that simulate word boundaries
+          const orConditions: string[] = [];
+          
+          keywords.forEach(keyword => {
+            if (keyword.trim()) {
+              const k = keyword.trim();
+              // Check for word at start, middle, or end of string
+              orConditions.push(`objeto_compra.ilike.${k} %`); // word at start followed by space
+              orConditions.push(`objeto_compra.ilike.% ${k} %`); // word in middle with spaces
+              orConditions.push(`objeto_compra.ilike.% ${k}`); // word at end preceded by space
+              orConditions.push(`objeto_compra.ilike.${k}`); // exact match (single word)
+            }
+          });
+          
+          if (orConditions.length > 0) {
+            query = query.or(orConditions.join(','));
+          }
         }
       }
     }
