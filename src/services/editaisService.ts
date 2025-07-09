@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { SearchFilters, Bidding } from '@/types/bidding';
 import { Tables } from '@/integrations/supabase/types';
@@ -103,15 +104,22 @@ export const fetchEditais = async (
             config: 'portuguese'
           });
         } else {
-          // Busca inteligente DESATIVADA: usar correspondência exata na coluna objeto_compra
-          const exactMatchConditions = keywords.map(keyword => {
-            return `objeto_compra.eq.${keyword}`;
+          // Busca inteligente DESATIVADA: usar regex com word boundaries case-insensitive
+          const regexConditions = keywords.map(keyword => {
+            // Escapa caracteres especiais do regex e adiciona word boundaries
+            const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return `objeto_compra.~*.\\y${escapedKeyword}\\y`;
           });
           
-          if (exactMatchConditions.length === 1) {
-            query = query.or(exactMatchConditions[0]);
+          if (regexConditions.length === 1) {
+            query = query.filter('objeto_compra', '~*', `\\y${keywords[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\y`);
           } else {
-            query = query.or(exactMatchConditions.join(','));
+            // Para múltiplas palavras-chave, usar OR com cada uma
+            const orConditions = keywords.map(keyword => {
+              const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              return `objeto_compra.~*.\\y${escapedKeyword}\\y`;
+            });
+            query = query.or(orConditions.join(','));
           }
         }
       }
