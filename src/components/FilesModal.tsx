@@ -12,7 +12,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { Bidding } from '@/types/bidding';
-import { Download, FileText, Calendar } from 'lucide-react';
+import { Download, FileText, Calendar, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -22,10 +22,11 @@ interface FilesModalProps {
   onClose: () => void;
 }
 
-const FILES_PER_PAGE = 10;
+const FILES_PER_PAGE = 5;
 
 const FilesModal: React.FC<FilesModalProps> = ({ bidding, isOpen, onClose }) => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   
   const totalFiles = bidding.arquivos.length;
   const totalPages = Math.ceil(totalFiles / FILES_PER_PAGE);
@@ -43,6 +44,53 @@ const FilesModal: React.FC<FilesModalProps> = ({ bidding, isOpen, onClose }) => 
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleDownloadAll = async () => {
+    setIsDownloadingAll(true);
+    
+    try {
+      // Importa dinamicamente JSZip
+      const { default: JSZip } = await import('jszip');
+      const zip = new JSZip();
+      
+      // Adiciona todos os arquivos ao ZIP
+      const downloadPromises = bidding.arquivos.map(async (arquivo, index) => {
+        try {
+          const response = await fetch(arquivo.url);
+          if (!response.ok) throw new Error(`Erro ao baixar ${arquivo.titulo}`);
+          
+          const blob = await response.blob();
+          const fileName = arquivo.titulo || `documento_${index + 1}`;
+          
+          // Adiciona o arquivo ao ZIP
+          zip.file(fileName, blob);
+        } catch (error) {
+          console.error(`Erro ao processar arquivo ${arquivo.titulo}:`, error);
+        }
+      });
+      
+      await Promise.all(downloadPromises);
+      
+      // Gera o ZIP e faz o download
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const zipFileName = `arquivos_licitacao_${bidding.processo || 'documentos'}.zip`;
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = zipFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Libera a memória
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Erro ao criar ZIP:', error);
+      alert('Erro ao criar arquivo ZIP. Tente novamente.');
+    } finally {
+      setIsDownloadingAll(false);
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -64,11 +112,34 @@ const FilesModal: React.FC<FilesModalProps> = ({ bidding, isOpen, onClose }) => 
             <Badge variant="outline">
               {totalFiles} arquivo(s) encontrado(s)
             </Badge>
-            {totalPages > 1 && (
-              <Badge variant="secondary">
-                Página {currentPage} de {totalPages}
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              {totalPages > 1 && (
+                <Badge variant="secondary">
+                  Página {currentPage} de {totalPages}
+                </Badge>
+              )}
+              {totalFiles > 0 && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleDownloadAll}
+                  disabled={isDownloadingAll}
+                  className="flex items-center gap-2"
+                >
+                  {isDownloadingAll ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <Package className="h-4 w-4" />
+                      Salvar Todos
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
 
           {currentFiles.length === 0 ? (
