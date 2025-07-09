@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { Bidding } from '@/types/bidding';
-import { Heart, MapPin, Calendar, DollarSign, FileText, ExternalLink } from 'lucide-react';
+import { Heart, MapPin, Calendar, DollarSign, FileText, ExternalLink, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import BiddingObjectModal from './BiddingObjectModal';
+import FilesModal from './FilesModal';
 
 interface BiddingCardProps {
   bidding: Bidding;
@@ -17,6 +18,7 @@ interface BiddingCardProps {
 const BiddingCard: React.FC<BiddingCardProps> = ({ bidding }) => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFilesModalOpen, setIsFilesModalOpen] = useState(false);
   const favorite = isFavorite(bidding._id);
 
   const formatCurrency = (value: number) => {
@@ -141,9 +143,17 @@ const BiddingCard: React.FC<BiddingCardProps> = ({ bidding }) => {
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1 text-sm text-gray-600">
-                <FileText className="h-4 w-4" />
-                <span>{bidding.arquivos.length} arquivo(s)</span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsFilesModalOpen(true)}
+                  className="flex items-center gap-1 text-sm"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>{bidding.arquivos.length} arquivo(s)</span>
+                  <Eye className="h-3 w-3" />
+                </Button>
               </div>
               {bidding.linkSistemaOrigem && (
                 <Button variant="outline" size="sm" asChild>
@@ -162,6 +172,12 @@ const BiddingCard: React.FC<BiddingCardProps> = ({ bidding }) => {
         bidding={bidding}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+
+      <FilesModal
+        bidding={bidding}
+        isOpen={isFilesModalOpen}
+        onClose={() => setIsFilesModalOpen(false)}
       />
     </>
   );
