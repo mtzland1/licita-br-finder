@@ -6,61 +6,32 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Bidding } from '@/types/bidding';
-import { generateHighlightVariations } from '@/services/editaisService';
 
 interface BiddingObjectModalProps {
   bidding: Bidding;
   isOpen: boolean;
   onClose: () => void;
   highlightKeywords?: string[];
-  smartSearch?: boolean;
 }
 
 const BiddingObjectModal: React.FC<BiddingObjectModalProps> = ({
   bidding,
   isOpen,
   onClose,
-  highlightKeywords = [],
-  smartSearch = false
+  highlightKeywords = []
 }) => {
   const highlightText = (text: string, keywords: string[]) => {
     if (!keywords.length) return text;
     
     let highlightedText = text;
-    const colors = ['bg-yellow-200', 'bg-green-200', 'bg-blue-200', 'bg-pink-200', 'bg-purple-200'];
-    
-    // Generate all variations for each keyword
-    const allVariations: { variation: string; color: string }[] = [];
-    
     keywords.forEach((keyword, index) => {
       if (keyword.trim()) {
+        const colors = ['bg-yellow-200', 'bg-green-200', 'bg-blue-200', 'bg-pink-200', 'bg-purple-200'];
         const color = colors[index % colors.length];
-        const variations = generateHighlightVariations(keyword.trim(), smartSearch);
-        
-        variations.forEach(variation => {
-          allVariations.push({ variation, color });
-        });
+        const regex = new RegExp(`(${keyword.trim()})`, 'gi');
+        highlightedText = highlightedText.replace(regex, `<mark class="${color} px-1 rounded">$1</mark>`);
       }
     });
-    
-    // Sort variations by length (longest first) to avoid partial replacements
-    allVariations.sort((a, b) => b.variation.length - a.variation.length);
-    
-    // Apply highlighting for each variation
-    allVariations.forEach(({ variation, color }) => {
-      // Escape special regex characters
-      const escapedVariation = variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      
-      // Create case-insensitive regex with word boundaries
-      const regex = new RegExp(`\\b(${escapedVariation})\\b`, 'gi');
-      
-      highlightedText = highlightedText.replace(regex, (match) => {
-        // Only highlight if not already highlighted
-        if (match.includes('<mark')) return match;
-        return `<mark class="${color} px-1 rounded font-medium">${match}</mark>`;
-      });
-    });
-    
     return highlightedText;
   };
 

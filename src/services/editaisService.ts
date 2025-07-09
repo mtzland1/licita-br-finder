@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { SearchFilters, Bidding } from '@/types/bidding';
 import { Tables } from '@/integrations/supabase/types';
@@ -80,135 +81,6 @@ const transformEditalToBidding = (edital: EditaisRow): Bidding => {
   };
 };
 
-// Function to normalize text (remove accents, convert to lowercase)
-const normalizeText = (text: string): string => {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, ''); // Remove accents and diacritics
-};
-
-// Advanced stemming function for Portuguese with comprehensive suffix removal
-const stemWord = (word: string): string => {
-  let stem = normalizeText(word);
-  
-  // Remove common Portuguese suffixes (ordered by priority - longest first)
-  const suffixes = [
-    // Diminutivos e aumentativos (mais específicos primeiro)
-    'zinhos', 'zinhas', 'zinho', 'zinha',
-    'inhos', 'inhas', 'inho', 'inha',
-    'ões', 'onas', 'ona', 'ão',
-    
-    // Adjetivos e advérbios
-    'mente', 'avel', 'ivel', 'osos', 'osas', 'oso', 'osa',
-    'icos', 'icas', 'ico', 'ica',
-    'ivos', 'ivas', 'ivo', 'iva',
-    
-    // Verbos (participios, gerundios, infinitivos)
-    'ações', 'acoes', 'acao', 'ação',
-    'sões', 'soes', 'são', 'sao',
-    'ados', 'adas', 'ado', 'ada',
-    'idos', 'idas', 'ido', 'ida',
-    'ando', 'endo', 'indo',
-    'aram', 'eram', 'iram',
-    'ava', 'ave', 'ive',
-    'ar', 'er', 'ir',
-    
-    // Substantivos (plurais e variações)
-    'ções', 'coes', 'ção', 'cao',
-    'ais', 'eis', 'ois', 'uis',
-    'as', 'es', 'is', 'os', 'us',
-    's'
-  ];
-  
-  // Apply suffix removal (only one per word to avoid over-stemming)
-  for (const suffix of suffixes) {
-    if (stem.endsWith(suffix) && stem.length > suffix.length + 2) {
-      stem = stem.slice(0, -suffix.length);
-      break; // Only remove one suffix to avoid over-stemming
-    }
-  }
-  
-  return stem;
-};
-
-// Generate comprehensive variations for smart search
-const generateSmartSearchVariations = (keyword: string): string[] => {
-  const variations = new Set<string>();
-  const normalizedKeyword = normalizeText(keyword);
-  const stemmedKeyword = stemWord(keyword);
-  
-  // Add base variations
-  [keyword, normalizedKeyword, stemmedKeyword].forEach(base => {
-    if (base && base.length >= 2) {
-      variations.add(base);
-      
-      // Add common Portuguese plural/singular variations
-      variations.add(base + 's');
-      variations.add(base + 'es');
-      variations.add(base + 'oes');
-      variations.add(base + 'ões');
-      variations.add(base + 'ais');
-      variations.add(base + 'eis');
-      
-      // Add common verb forms
-      variations.add(base + 'ar');
-      variations.add(base + 'er');
-      variations.add(base + 'ir');
-      variations.add(base + 'acao');
-      variations.add(base + 'ação');
-      variations.add(base + 'acoes');
-      variations.add(base + 'ações');
-      
-      // Add diminutive forms
-      variations.add(base + 'inho');
-      variations.add(base + 'inha');
-      variations.add(base + 'inhos');
-      variations.add(base + 'inhas');
-    }
-  });
-  
-  // Remove empty strings and very short words
-  return Array.from(variations).filter(v => v && v.trim().length >= 2);
-};
-
-// Create search conditions based on smart search setting
-const createSearchConditions = (keywords: string[], smartSearch: boolean): string[] => {
-  const orConditions: string[] = [];
-  
-  keywords.forEach(keyword => {
-    if (keyword.trim()) {
-      const k = keyword.trim();
-      
-      if (smartSearch) {
-        // Smart search: use stemmed variations
-        const variations = generateSmartSearchVariations(k);
-        
-        variations.forEach(variation => {
-          // Escape special characters for PostgREST
-          const escapedVariation = variation.replace(/[%_]/g, '\\$&');
-          orConditions.push(`objeto_compra.ilike.%${escapedVariation}%`);
-        });
-      } else {
-        // Normal search: exact match
-        const escapedKeyword = k.replace(/[%_]/g, '\\$&');
-        orConditions.push(`objeto_compra.ilike.%${escapedKeyword}%`);
-      }
-    }
-  });
-  
-  return orConditions;
-};
-
-// Generate highlight variations for frontend highlighting
-export const generateHighlightVariations = (keyword: string, smartSearch: boolean): string[] => {
-  if (!smartSearch) {
-    return [keyword];
-  }
-  
-  return generateSmartSearchVariations(keyword);
-};
-
 export const fetchEditais = async (
   filters?: SearchFilters,
   page: number = 1,
@@ -224,11 +96,11 @@ export const fetchEditais = async (
       const keywords = filters.keywords.split(';').map(k => k.trim()).filter(k => k);
       
       if (keywords.length > 0) {
-        const orConditions = createSearchConditions(keywords, filters.smartSearch || false);
-        
-        if (orConditions.length > 0) {
-          query = query.or(orConditions.join(','));
-        }
+        // Use full-text search for objeto_compra
+        const searchConditions = keywords.map(keyword => 
+          `objeto_compra.ilike.%${keyword}%`
+        ).join(',');
+        query = query.or(searchConditions);
       }
     }
 

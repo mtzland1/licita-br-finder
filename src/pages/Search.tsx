@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -353,7 +354,6 @@ const Search = () => {
                 key={bidding._id} 
                 bidding={bidding}
                 highlightKeywords={filters.keywords.split(';').map(k => k.trim()).filter(k => k)}
-                smartSearch={filters.smartSearch}
               />
             ))}
             
