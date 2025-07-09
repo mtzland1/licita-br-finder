@@ -80,41 +80,6 @@ const transformEditalToBidding = (edital: EditaisRow): Bidding => {
   };
 };
 
-// Helper function to normalize text for search (remove accents, convert to lowercase)
-const normalizeText = (text: string): string => {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, ''); // Remove accents
-};
-
-// Helper function to create precise search conditions
-const createPreciseSearchConditions = (keywords: string[], smartSearch: boolean = true) => {
-  const conditions: string[] = [];
-  
-  keywords.forEach(keyword => {
-    if (!keyword.trim()) return;
-    
-    const trimmedKeyword = keyword.trim();
-    
-    if (smartSearch) {
-      // For smart search, normalize the keyword but use exact word boundaries
-      const normalizedKeyword = normalizeText(trimmedKeyword);
-      // Use word boundary regex to match only complete words
-      conditions.push(`unaccent(lower(objeto_compra)) ~ '\\m${normalizedKeyword}\\M'`);
-      conditions.push(`unaccent(lower(orgao_razao_social)) ~ '\\m${normalizedKeyword}\\M'`);
-      conditions.push(`unaccent(lower(informacao_complementar)) ~ '\\m${normalizedKeyword}\\M'`);
-    } else {
-      // For exact search, use word boundaries with original case sensitivity
-      conditions.push(`objeto_compra ~* '\\m${trimmedKeyword}\\M'`);
-      conditions.push(`orgao_razao_social ~* '\\m${trimmedKeyword}\\M'`);
-      conditions.push(`informacao_complementar ~* '\\m${trimmedKeyword}\\M'`);
-    }
-  });
-  
-  return conditions;
-};
-
 export const fetchEditais = async (
   filters?: SearchFilters,
   page: number = 1,
@@ -130,10 +95,20 @@ export const fetchEditais = async (
       const keywords = filters.keywords.split(';').map(k => k.trim()).filter(k => k);
       
       if (keywords.length > 0) {
-        const searchConditions = createPreciseSearchConditions(keywords, filters.smartSearch);
+        // Create search conditions using simple ilike for better compatibility
+        const searchConditions: string[] = [];
+        
+        keywords.forEach(keyword => {
+          if (keyword.trim()) {
+            // Search in objeto_compra, orgao_razao_social, and informacao_complementar
+            searchConditions.push(`objeto_compra.ilike.%${keyword}%`);
+            searchConditions.push(`orgao_razao_social.ilike.%${keyword}%`);
+            searchConditions.push(`informacao_complementar.ilike.%${keyword}%`);
+          }
+        });
         
         if (searchConditions.length > 0) {
-          // Join all conditions with OR
+          // Use proper PostgREST OR syntax with dots instead of commas
           query = query.or(searchConditions.join(','));
         }
       }
