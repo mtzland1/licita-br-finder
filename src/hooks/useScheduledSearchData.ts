@@ -6,6 +6,7 @@ import { useFilters } from '@/contexts/FiltersContext';
 import { Bidding } from '@/types/bidding';
 import { ActivitySummary, EventType } from '@/pages/ScheduledSearch';
 import { format, subDays } from 'date-fns';
+import { utcToZonedTime } from 'date-fns-tz';
 
 export const useScheduledSearchData = (selectedFilterId: string) => {
   const [activitySummary, setActivitySummary] = useState<ActivitySummary>({});
@@ -13,12 +14,15 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
 
   const selectedFilter = savedFilters.find(f => f.id === selectedFilterId);
 
-  // Generate the last 7 days including today
+  // Generate the last 7 days including today in Brasília timezone
   const getLast7Days = () => {
     const days = [];
+    const timeZone = 'America/Sao_Paulo';
+    
     for (let i = 0; i < 7; i++) {
-      const date = subDays(new Date(), i);
-      days.push(format(date, 'yyyy-MM-dd'));
+      const utcDate = subDays(new Date(), i);
+      const brasiliaDate = utcToZonedTime(utcDate, timeZone);
+      days.push(format(brasiliaDate, 'yyyy-MM-dd'));
     }
     return days;
   };
@@ -28,24 +32,31 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
     queryFn: async () => {
       if (!selectedFilter?.keywords) return [];
 
-      // Split keywords by semicolon or space and filter empty ones
-      const keywords = selectedFilter.keywords
-        .split(/[;\s]+/)
-        .map(k => k.trim())
-        .filter(k => k.length > 0);
-
-      if (keywords.length === 0) return [];
-
-      // Use the existing function to search by keywords
+      // Use the FTS function for better search like in advanced search
       const { data, error } = await supabase
-        .rpc('buscar_editais_por_palavras', { palavras_chave: keywords });
+        .rpc('buscar_editais_fts', { termos_de_busca: selectedFilter.keywords });
 
       if (error) {
-        console.error('Error fetching relevant editais:', error);
+        console.error('Error fetching relevant editais IDs:', error);
         throw error;
       }
 
-      return data || [];
+      if (!data || data.length === 0) return [];
+
+      // Get the full edital data for the matching IDs
+      const editalIds = data.map(item => item.id);
+      
+      const { data: editaisData, error: editaisError } = await supabase
+        .from('editais')
+        .select('*')
+        .in('id', editalIds);
+
+      if (editaisError) {
+        console.error('Error fetching editais data:', error);
+        throw editaisError;
+      }
+
+      return editaisData || [];
     },
     enabled: !!selectedFilter?.keywords,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -60,6 +71,7 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
 
     const last7Days = getLast7Days();
     const summary: ActivitySummary = {};
+    const timeZone = 'America/Sao_Paulo';
 
     last7Days.forEach(date => {
       summary[date] = {
@@ -72,23 +84,35 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
       relevantEditais.forEach(edital => {
         // Count updates (data_atualizacao or updated_at)
         const updateDate = edital.data_atualizacao || edital.updated_at;
-        if (updateDate && format(new Date(updateDate), 'yyyy-MM-dd') === date) {
-          summary[date].updates++;
+        if (updateDate) {
+          const brasiliaUpdateDate = utcToZonedTime(new Date(updateDate), timeZone);
+          if (format(brasiliaUpdateDate, 'yyyy-MM-dd') === date) {
+            summary[date].updates++;
+          }
         }
 
         // Count new publications
-        if (edital.data_publicacao_pncp && format(new Date(edital.data_publicacao_pncp), 'yyyy-MM-dd') === date) {
-          summary[date].new_publications++;
+        if (edital.data_publicacao_pncp) {
+          const brasiliaPublicationDate = utcToZonedTime(new Date(edital.data_publicacao_pncp), timeZone);
+          if (format(brasiliaPublicationDate, 'yyyy-MM-dd') === date) {
+            summary[date].new_publications++;
+          }
         }
 
         // Count proposal openings
-        if (edital.data_abertura_proposta && format(new Date(edital.data_abertura_proposta), 'yyyy-MM-dd') === date) {
-          summary[date].proposal_openings++;
+        if (edital.data_abertura_proposta) {
+          const brasiliaOpeningDate = utcToZonedTime(new Date(edital.data_abertura_proposta), timeZone);
+          if (format(brasiliaOpeningDate, 'yyyy-MM-dd') === date) {
+            summary[date].proposal_openings++;
+          }
         }
 
         // Count proposal closings
-        if (edital.data_encerramento_proposta && format(new Date(edital.data_encerramento_proposta), 'yyyy-MM-dd') === date) {
-          summary[date].proposal_closings++;
+        if (edital.data_encerramento_proposta) {
+          const brasiliaClosingDate = utcToZonedTime(new Date(edital.data_encerramento_proposta), timeZone);
+          if (format(brasiliaClosingDate, 'yyyy-MM-dd') === date) {
+            summary[date].proposal_closings++;
+          }
         }
       });
     });
@@ -106,6 +130,8 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
       proposal_closings: 'data_encerramento_proposta'
     }[eventType];
 
+    const timeZone = 'America/Sao_Paulo';
+
     // Filter relevant editais by the specific date and event type
     const filteredEditais = relevantEditais.filter(edital => {
       const fieldValue = edital[dateField as keyof typeof edital] || 
@@ -113,7 +139,8 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
       
       if (!fieldValue) return false;
       
-      return format(new Date(fieldValue as string), 'yyyy-MM-dd') === date;
+      const brasiliaDate = utcToZonedTime(new Date(fieldValue as string), timeZone);
+      return format(brasiliaDate, 'yyyy-MM-dd') === date;
     });
 
     // Transform to Bidding type
