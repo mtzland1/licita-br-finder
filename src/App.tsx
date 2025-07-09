@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Search from "./pages/Search";
 import Favorites from "./pages/Favorites";
 import Filters from "./pages/Filters";
+import ScheduledSearch from "./pages/ScheduledSearch";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -54,6 +55,13 @@ const App = () => (
                   <ProtectedRoute>
                     <Layout>
                       <Filters />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/scheduled-search" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ScheduledSearch />
                     </Layout>
                   </ProtectedRoute>
                 } />

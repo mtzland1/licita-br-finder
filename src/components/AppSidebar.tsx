@@ -15,6 +15,7 @@ import {
   Search,
   Heart,
   Filter,
+  Calendar,
 } from "lucide-react";
 
 const navigationItems = [
@@ -37,6 +38,11 @@ const navigationItems = [
     title: "Filtros Salvos",
     url: "/filters",
     icon: Filter,
+  },
+  {
+    title: "Pesquisa Programada",
+    url: "/scheduled-search",
+    icon: Calendar,
   },
 ];
 
