@@ -88,129 +88,91 @@ const normalizeText = (text: string): string => {
     .replace(/[\u0300-\u036f]/g, ''); // Remove accents and diacritics
 };
 
-// Advanced stemming function for Portuguese
+// Advanced stemming function for Portuguese with comprehensive suffix removal
 const stemWord = (word: string): string => {
   let stem = normalizeText(word);
   
-  // Remove common Portuguese suffixes (in order of priority - longest first)
+  // Remove common Portuguese suffixes (ordered by priority - longest first)
   const suffixes = [
-    // Diminutivos e aumentativos
-    'zinho', 'zinha', 'zinhos', 'zinhas',
-    'inho', 'inha', 'inhos', 'inhas',
-    'ão', 'ões', 'ona', 'onas',
+    // Diminutivos e aumentativos (mais específicos primeiro)
+    'zinhos', 'zinhas', 'zinho', 'zinha',
+    'inhos', 'inhas', 'inho', 'inha',
+    'ões', 'onas', 'ona', 'ão',
     
     // Adjetivos e advérbios
-    'mente', 'ável', 'ível', 'oso', 'osa', 'osos', 'osas',
-    'ico', 'ica', 'icos', 'icas',
-    'ivo', 'iva', 'ivos', 'ivas',
+    'mente', 'avel', 'ivel', 'osos', 'osas', 'oso', 'osa',
+    'icos', 'icas', 'ico', 'ica',
+    'ivos', 'ivas', 'ivo', 'iva',
     
-    // Verbos (infinitivos, gerúndios, particípios)
+    // Verbos (participios, gerundios, infinitivos)
+    'ações', 'acoes', 'acao', 'ação',
+    'sões', 'soes', 'são', 'sao',
+    'ados', 'adas', 'ado', 'ada',
+    'idos', 'idas', 'ido', 'ida',
     'ando', 'endo', 'indo',
-    'ado', 'ada', 'ados', 'adas',
-    'ido', 'ida', 'idos', 'idas',
+    'aram', 'eram', 'iram',
+    'ava', 'ave', 'ive',
     'ar', 'er', 'ir',
     
-    // Substantivos plurais e femininos
-    'ções', 'sões', 'ação', 'são',
+    // Substantivos (plurais e variações)
+    'ções', 'coes', 'ção', 'cao',
     'ais', 'eis', 'ois', 'uis',
     'as', 'es', 'is', 'os', 'us',
     's'
   ];
   
+  // Apply suffix removal (only one per word to avoid over-stemming)
   for (const suffix of suffixes) {
     if (stem.endsWith(suffix) && stem.length > suffix.length + 2) {
       stem = stem.slice(0, -suffix.length);
-      break; // Only remove one suffix per word
+      break; // Only remove one suffix to avoid over-stemming
     }
   }
   
   return stem;
 };
 
-// Generate comprehensive variations of a keyword for smart search
-const generateKeywordVariations = (keyword: string): string[] => {
+// Generate comprehensive variations for smart search
+const generateSmartSearchVariations = (keyword: string): string[] => {
   const variations = new Set<string>();
   const normalizedKeyword = normalizeText(keyword);
   const stemmedKeyword = stemWord(keyword);
   
-  // Add original forms
-  variations.add(keyword);
-  variations.add(keyword.toLowerCase());
-  variations.add(keyword.toUpperCase());
-  variations.add(normalizedKeyword);
-  variations.add(stemmedKeyword);
-  
-  // Generate plural/singular variations from the stemmed form
-  const generateInflections = (stem: string) => {
-    const inflections: string[] = [stem];
-    
-    // Add plural variations
-    inflections.push(stem + 's');
-    inflections.push(stem + 'es');
-    inflections.push(stem + 'ões'); // for words ending in -ão
-    inflections.push(stem + 'ais'); // for words ending in -al
-    inflections.push(stem + 'eis'); // for words ending in -el
-    inflections.push(stem + 'is');  // for words ending in -il
-    
-    // Add common verb conjugations
-    inflections.push(stem + 'ar');
-    inflections.push(stem + 'er');
-    inflections.push(stem + 'ir');
-    inflections.push(stem + 'ação');
-    inflections.push(stem + 'são');
-    inflections.push(stem + 'ções');
-    inflections.push(stem + 'sões');
-    
-    // Add adjective variations
-    inflections.push(stem + 'o');
-    inflections.push(stem + 'a');
-    inflections.push(stem + 'os');
-    inflections.push(stem + 'as');
-    
-    return inflections;
-  };
-  
-  // Generate inflections for both normalized and stemmed versions
-  generateInflections(normalizedKeyword).forEach(v => variations.add(v));
-  generateInflections(stemmedKeyword).forEach(v => variations.add(v));
-  
-  // Also add variations with common accent patterns
-  const addAccentVariations = (base: string) => {
-    // Common accent patterns in Portuguese
-    const accentMap: { [key: string]: string[] } = {
-      'a': ['á', 'à', 'ã', 'â'],
-      'e': ['é', 'ê'],
-      'i': ['í'],
-      'o': ['ó', 'ô', 'õ'],
-      'u': ['ú'],
-      'c': ['ç']
-    };
-    
-    let result = [base];
-    
-    for (const [plain, accented] of Object.entries(accentMap)) {
-      const newResults: string[] = [];
-      for (const word of result) {
-        newResults.push(word);
-        for (const accent of accented) {
-          newResults.push(word.replace(new RegExp(plain, 'g'), accent));
-        }
-      }
-      result = newResults;
+  // Add base variations
+  [keyword, normalizedKeyword, stemmedKeyword].forEach(base => {
+    if (base && base.length >= 2) {
+      variations.add(base);
+      
+      // Add common Portuguese plural/singular variations
+      variations.add(base + 's');
+      variations.add(base + 'es');
+      variations.add(base + 'oes');
+      variations.add(base + 'ões');
+      variations.add(base + 'ais');
+      variations.add(base + 'eis');
+      
+      // Add common verb forms
+      variations.add(base + 'ar');
+      variations.add(base + 'er');
+      variations.add(base + 'ir');
+      variations.add(base + 'acao');
+      variations.add(base + 'ação');
+      variations.add(base + 'acoes');
+      variations.add(base + 'ações');
+      
+      // Add diminutive forms
+      variations.add(base + 'inho');
+      variations.add(base + 'inha');
+      variations.add(base + 'inhos');
+      variations.add(base + 'inhas');
     }
-    
-    return result;
-  };
+  });
   
-  // Add accent variations for the main stems
-  addAccentVariations(stemmedKeyword).forEach(v => variations.add(v));
-  addAccentVariations(normalizedKeyword).forEach(v => variations.add(v));
-  
-  // Remove empty strings and very short words (less than 2 characters)
+  // Remove empty strings and very short words
   return Array.from(variations).filter(v => v && v.trim().length >= 2);
 };
 
-// Function to create advanced search conditions with smart stemming
+// Create search conditions based on smart search setting
 const createSearchConditions = (keywords: string[], smartSearch: boolean): string[] => {
   const orConditions: string[] = [];
   
@@ -219,24 +181,18 @@ const createSearchConditions = (keywords: string[], smartSearch: boolean): strin
       const k = keyword.trim();
       
       if (smartSearch) {
-        // Smart search: generate all variations using advanced stemming
-        const variations = generateKeywordVariations(k);
+        // Smart search: use stemmed variations
+        const variations = generateSmartSearchVariations(k);
         
         variations.forEach(variation => {
-          // Escape special regex characters for PostgreSQL
-          const escapedVariation = variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          
-          // Use ilike with word boundaries
+          // Escape special characters for PostgREST
+          const escapedVariation = variation.replace(/[%_]/g, '\\$&');
           orConditions.push(`objeto_compra.ilike.%${escapedVariation}%`);
-          
-          // Also search in orgao_razao_social for better coverage
-          orConditions.push(`orgao_razao_social.ilike.%${escapedVariation}%`);
         });
       } else {
-        // Normal search: exact keyword match
-        const escapedKeyword = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Normal search: exact match
+        const escapedKeyword = k.replace(/[%_]/g, '\\$&');
         orConditions.push(`objeto_compra.ilike.%${escapedKeyword}%`);
-        orConditions.push(`orgao_razao_social.ilike.%${escapedKeyword}%`);
       }
     }
   });
@@ -244,13 +200,13 @@ const createSearchConditions = (keywords: string[], smartSearch: boolean): strin
   return orConditions;
 };
 
-// Function to generate highlight variations for a keyword (simplified for highlighting)
+// Generate highlight variations for frontend highlighting
 export const generateHighlightVariations = (keyword: string, smartSearch: boolean): string[] => {
   if (!smartSearch) {
     return [keyword];
   }
   
-  return generateKeywordVariations(keyword);
+  return generateSmartSearchVariations(keyword);
 };
 
 export const fetchEditais = async (

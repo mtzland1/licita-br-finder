@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +33,7 @@ const BiddingCard: React.FC<BiddingCardProps> = ({
     const colors = ['bg-yellow-200', 'bg-green-200', 'bg-blue-200', 'bg-pink-200', 'bg-purple-200'];
     
     // Generate all variations for each keyword
-    const allVariations: { variation: string; color: string }[] = [];
+    const allVariations: { variation: string; color: string; originalKeyword: string }[] = [];
     
     keywords.forEach((keyword, index) => {
       if (keyword.trim()) {
@@ -40,7 +41,7 @@ const BiddingCard: React.FC<BiddingCardProps> = ({
         const variations = generateHighlightVariations(keyword.trim(), smartSearch);
         
         variations.forEach(variation => {
-          allVariations.push({ variation, color });
+          allVariations.push({ variation, color, originalKeyword: keyword.trim() });
         });
       }
     });
@@ -50,9 +51,17 @@ const BiddingCard: React.FC<BiddingCardProps> = ({
     
     // Apply highlighting for each variation
     allVariations.forEach(({ variation, color }) => {
-      // Create word boundary regex that matches the variation as a whole word
-      const regex = new RegExp(`\\b(${variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
-      highlightedText = highlightedText.replace(regex, `<mark class="${color} px-1 rounded">$1</mark>`);
+      // Escape special regex characters
+      const escapedVariation = variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // Create case-insensitive regex with word boundaries
+      const regex = new RegExp(`\\b(${escapedVariation})\\b`, 'gi');
+      
+      highlightedText = highlightedText.replace(regex, (match) => {
+        // Only highlight if not already highlighted
+        if (match.includes('<mark')) return match;
+        return `<mark class="${color} px-1 rounded font-medium">${match}</mark>`;
+      });
     });
     
     return highlightedText;

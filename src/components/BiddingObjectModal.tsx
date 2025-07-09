@@ -48,9 +48,17 @@ const BiddingObjectModal: React.FC<BiddingObjectModalProps> = ({
     
     // Apply highlighting for each variation
     allVariations.forEach(({ variation, color }) => {
-      // Create word boundary regex that matches the variation as a whole word
-      const regex = new RegExp(`\\b(${variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
-      highlightedText = highlightedText.replace(regex, `<mark class="${color} px-1 rounded">$1</mark>`);
+      // Escape special regex characters
+      const escapedVariation = variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // Create case-insensitive regex with word boundaries
+      const regex = new RegExp(`\\b(${escapedVariation})\\b`, 'gi');
+      
+      highlightedText = highlightedText.replace(regex, (match) => {
+        // Only highlight if not already highlighted
+        if (match.includes('<mark')) return match;
+        return `<mark class="${color} px-1 rounded font-medium">${match}</mark>`;
+      });
     });
     
     return highlightedText;
