@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ActivitySummaryTable } from '@/components/scheduled-search/ActivitySummaryTable';
-import { BiddingCard } from '@/components/BiddingCard';
+import BiddingCard from "@/components/BiddingCard
 import { useFilters } from '@/contexts/FiltersContext';
 import { useScheduledSearchData } from '@/hooks/useScheduledSearchData';
 import { Bidding } from '@/types/bidding';
