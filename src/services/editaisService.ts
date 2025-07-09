@@ -88,6 +88,59 @@ const normalizeText = (text: string): string => {
     .replace(/[\u0300-\u036f]/g, ''); // Remove accents
 };
 
+// Function to generate all variations of a keyword for smart search
+const generateKeywordVariations = (keyword: string): string[] => {
+  const variations: string[] = [];
+  const normalizedKeyword = normalizeText(keyword);
+  
+  // Add original keyword
+  variations.push(keyword);
+  
+  // Add lowercase version
+  if (keyword !== keyword.toLowerCase()) {
+    variations.push(keyword.toLowerCase());
+  }
+  
+  // Add uppercase version
+  if (keyword !== keyword.toUpperCase()) {
+    variations.push(keyword.toUpperCase());
+  }
+  
+  // Add normalized (no accents) version
+  if (normalizedKeyword !== keyword.toLowerCase()) {
+    variations.push(normalizedKeyword);
+  }
+  
+  // Add plural/singular variations for Portuguese
+  const addPluralSingularVariations = (word: string) => {
+    // Add plural variations
+    if (!word.endsWith('s') && !word.endsWith('ões')) {
+      variations.push(word + 's');
+    }
+    if (word.endsWith('ão')) {
+      variations.push(word.slice(0, -2) + 'ões');
+    }
+    
+    // Add singular variations
+    if (word.endsWith('s') && word.length > 3) {
+      variations.push(word.slice(0, -1));
+    }
+    if (word.endsWith('ões')) {
+      variations.push(word.slice(0, -3) + 'ão');
+    }
+  };
+  
+  // Apply plural/singular variations to all forms
+  [keyword, keyword.toLowerCase(), normalizedKeyword].forEach(word => {
+    if (word) {
+      addPluralSingularVariations(word);
+    }
+  });
+  
+  // Remove duplicates and empty strings
+  return [...new Set(variations.filter(v => v && v.trim()))];
+};
+
 // Function to create search conditions with word boundaries
 const createSearchConditions = (keywords: string[], smartSearch: boolean): string[] => {
   const orConditions: string[] = [];
@@ -97,36 +150,10 @@ const createSearchConditions = (keywords: string[], smartSearch: boolean): strin
       const k = keyword.trim();
       
       if (smartSearch) {
-        // Smart search: normalize the keyword and search for variations
-        const normalizedKeyword = normalizeText(k);
+        // Smart search: generate all variations
+        const variations = generateKeywordVariations(k);
         
-        // Create multiple variations to handle accents and case
-        const variations = [
-          k, // original
-          k.toLowerCase(), // lowercase
-          k.toUpperCase(), // uppercase
-          normalizedKeyword, // without accents
-        ];
-        
-        // Add plural/singular variations for Portuguese
-        if (!k.endsWith('s') && !k.endsWith('ões')) {
-          variations.push(k + 's'); // add plural
-          variations.push(k + 'ões'); // add plural for words ending in ão
-        }
-        if (k.endsWith('s') && k.length > 3) {
-          variations.push(k.slice(0, -1)); // remove s for potential singular
-        }
-        if (k.endsWith('ões')) {
-          variations.push(k.slice(0, -3) + 'ão'); // convert ões to ão
-        }
-        if (k.endsWith('ão')) {
-          variations.push(k.slice(0, -2) + 'ões'); // convert ão to ões
-        }
-        
-        // Remove duplicates
-        const uniqueVariations = [...new Set(variations)];
-        
-        uniqueVariations.forEach(variation => {
+        variations.forEach(variation => {
           // Word boundary conditions for each variation
           orConditions.push(`objeto_compra.ilike.${variation} %`); // word at start followed by space
           orConditions.push(`objeto_compra.ilike.% ${variation} %`); // word in middle with spaces
@@ -144,6 +171,15 @@ const createSearchConditions = (keywords: string[], smartSearch: boolean): strin
   });
   
   return orConditions;
+};
+
+// Function to generate highlight variations for a keyword
+export const generateHighlightVariations = (keyword: string, smartSearch: boolean): string[] => {
+  if (!smartSearch) {
+    return [keyword];
+  }
+  
+  return generateKeywordVariations(keyword);
 };
 
 export const fetchEditais = async (
