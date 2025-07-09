@@ -60,6 +60,7 @@ export type Database = {
           nome_unidade: string | null
           numero_controle_pncp: string | null
           objeto_compra: string | null
+          objeto_compra_padronizado: unknown | null
           orgao_cnpj: string | null
           orgao_esfera_id: string | null
           orgao_poder_id: string | null
@@ -94,6 +95,7 @@ export type Database = {
           nome_unidade?: string | null
           numero_controle_pncp?: string | null
           objeto_compra?: string | null
+          objeto_compra_padronizado?: unknown | null
           orgao_cnpj?: string | null
           orgao_esfera_id?: string | null
           orgao_poder_id?: string | null
@@ -128,6 +130,7 @@ export type Database = {
           nome_unidade?: string | null
           numero_controle_pncp?: string | null
           objeto_compra?: string | null
+          objeto_compra_padronizado?: unknown | null
           orgao_cnpj?: string | null
           orgao_esfera_id?: string | null
           orgao_poder_id?: string | null

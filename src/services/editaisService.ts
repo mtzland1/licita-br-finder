@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { SearchFilters, Bidding } from '@/types/bidding';
 import { Tables } from '@/integrations/supabase/types';
@@ -96,11 +95,27 @@ export const fetchEditais = async (
       const keywords = filters.keywords.split(';').map(k => k.trim()).filter(k => k);
       
       if (keywords.length > 0) {
-        // Use full-text search for objeto_compra
-        const searchConditions = keywords.map(keyword => 
-          `objeto_compra.ilike.%${keyword}%`
-        ).join(',');
-        query = query.or(searchConditions);
+        if (filters.smartSearch) {
+          // Busca inteligente ATIVADA: usar texto completo na coluna objeto_compra_padronizado
+          const searchQuery = keywords.join(' ');
+          query = query.textSearch('objeto_compra_padronizado', `'${searchQuery}'`, {
+            type: 'plainto',
+            config: 'portuguese'
+          });
+        } else {
+          // Busca inteligente DESATIVADA: usar regex com word boundaries
+          const regexConditions = keywords.map(keyword => {
+            // Escapa caracteres especiais do regex e adiciona word boundaries
+            const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return `objeto_compra.~*.\\y${escapedKeyword}\\y`;
+          });
+          
+          if (regexConditions.length === 1) {
+            query = query.or(regexConditions[0]);
+          } else {
+            query = query.or(regexConditions.join(','));
+          }
+        }
       }
     }
 
