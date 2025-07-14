@@ -45,16 +45,17 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
         throw error;
       }
 
-      // Filter results to show only proposals closing between today and next 7 days
-      // Omit proposals with past closing dates
-      const today = startOfDay(new Date());
+      // Filter results to show only proposals closing from NOW to next 7 days
+      // Omit proposals that have already closed (past dates)
+      const now = new Date(); // Momento atual exato
       const next7Days = endOfDay(addDays(new Date(), 7));
 
       const filteredData = (data || []).filter(edital => {
         if (!edital.data_encerramento_proposta) return false;
         
         const closingDate = new Date(edital.data_encerramento_proposta);
-        return closingDate >= today && closingDate <= next7Days;
+        // Só mostra propostas que ainda não encerraram (data futura) e até 7 dias
+        return closingDate > now && closingDate <= next7Days;
       });
 
       return filteredData;
