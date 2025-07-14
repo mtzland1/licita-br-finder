@@ -22,6 +22,8 @@ const ScheduledSearch: React.FC = () => {
   const [clientYesterdayStr, setClientYesterdayStr] = useState<string | null>(null);
   
   const { savedFilters, isLoading: filtersLoading } = useFilters();
+  
+  const selectedFilter = savedFilters.find(f => f.id === selectedFilterId);
   const { 
     activitySummary, 
     getFilteredBiddings,
@@ -143,7 +145,11 @@ const ScheduledSearch: React.FC = () => {
             ) : (
               <div className="space-y-4">
                 {filteredBiddings.map((bidding) => (
-                  <BiddingCard key={bidding._id} bidding={bidding} />
+                  <BiddingCard 
+                    key={bidding._id} 
+                    bidding={bidding}
+                    searchTerms={selectedFilter?.keywords ? selectedFilter.keywords.split(';').map(k => k.trim()).filter(k => k) : []}
+                  />
                 ))}
               </div>
             )}

@@ -10,12 +10,14 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import BiddingObjectModal from './BiddingObjectModal';
 import FilesModal from './FilesModal';
+import HighlightedText from './HighlightedText';
 
 interface BiddingCardProps {
   bidding: Bidding;
+  searchTerms?: string[];
 }
 
-const BiddingCard: React.FC<BiddingCardProps> = ({ bidding }) => {
+const BiddingCard: React.FC<BiddingCardProps> = ({ bidding, searchTerms = [] }) => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFilesModalOpen, setIsFilesModalOpen] = useState(false);
@@ -61,7 +63,10 @@ const BiddingCard: React.FC<BiddingCardProps> = ({ bidding }) => {
               
               <div className="space-y-2">
                 <h3 className="font-semibold text-gray-900 text-lg leading-tight">
-                  {truncateText(bidding.objetoCompra, 300)}
+                  <HighlightedText 
+                    text={truncateText(bidding.objetoCompra, 300)}
+                    searchTerms={searchTerms}
+                  />
                   {shouldShowReadMore && (
                     <Button
                       variant="link"
@@ -75,10 +80,18 @@ const BiddingCard: React.FC<BiddingCardProps> = ({ bidding }) => {
                 </h3>
                 
                 <div className="text-sm text-gray-600">
-                  <p className="font-medium">{bidding.orgaoEntidade.razaoSocial}</p>
+                  <p className="font-medium">
+                    <HighlightedText 
+                      text={bidding.orgaoEntidade.razaoSocial}
+                      searchTerms={searchTerms}
+                    />
+                  </p>
                   <p className="flex items-center gap-1 mt-1">
                     <MapPin className="h-3 w-3" />
-                    {bidding.unidadeOrgao.municipioNome}, {bidding.unidadeOrgao.ufSigla}
+                    <HighlightedText 
+                      text={`${bidding.unidadeOrgao.municipioNome}, ${bidding.unidadeOrgao.ufSigla}`}
+                      searchTerms={searchTerms}
+                    />
                   </p>
                 </div>
               </div>

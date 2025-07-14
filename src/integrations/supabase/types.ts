@@ -301,9 +301,23 @@ export type Database = {
           valor_total_estimado: number | null
         }[]
       }
-      sua_funcao_de_busca: {
-        Args: { termos_de_busca: string }
-        Returns: number[]
+      get_unique_cities: {
+        Args: { p_states: string[] }
+        Returns: {
+          municipio_nome: string
+        }[]
+      }
+      get_unique_modalities: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          modalidade_nome: string
+        }[]
+      }
+      get_unique_states: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          uf_sigla: string
+        }[]
       }
     }
     Enums: {

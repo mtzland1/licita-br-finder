@@ -116,22 +116,30 @@ export const fetchEditais = async (
       query = query.in('modalidade_nome', filters.modalities);
     }
 
-    // Filtros de data de abertura
+    // Filtros de data de abertura (inclusivos)
     if (filters.startDate) {
-      query = query.gte('data_abertura_proposta', filters.startDate.toISOString());
+      const startOfDay = new Date(filters.startDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      query = query.gte('data_abertura_proposta', startOfDay.toISOString());
     }
 
     if (filters.endDate) {
-      query = query.lte('data_abertura_proposta', filters.endDate.toISOString());
+      const endOfDay = new Date(filters.endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      query = query.lte('data_abertura_proposta', endOfDay.toISOString());
     }
 
-    // Filtros de data de encerramento
+    // Filtros de data de encerramento (inclusivos)
     if (filters.startCloseDate) {
-      query = query.gte('data_encerramento_proposta', filters.startCloseDate.toISOString());
+      const startOfDay = new Date(filters.startCloseDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      query = query.gte('data_encerramento_proposta', startOfDay.toISOString());
     }
 
     if (filters.endCloseDate) {
-      query = query.lte('data_encerramento_proposta', filters.endCloseDate.toISOString());
+      const endOfDay = new Date(filters.endCloseDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      query = query.lte('data_encerramento_proposta', endOfDay.toISOString());
     }
   }
 

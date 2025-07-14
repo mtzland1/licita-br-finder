@@ -587,6 +587,7 @@ const Search = () => {
               <BiddingCard
                 key={bidding._id}
                 bidding={bidding}
+                searchTerms={filters.keywords ? filters.keywords.split(';').map(k => k.trim()).filter(k => k) : []}
               />
             ))}
 

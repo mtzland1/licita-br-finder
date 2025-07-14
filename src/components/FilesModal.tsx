@@ -53,7 +53,7 @@ const FilesModal: React.FC<FilesModalProps> = ({ bidding, isOpen, onClose }) => 
   // --- ESTADOS ---
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const { token } = useAuth();
+  const { session } = useAuth();
 
   // --- LÓGICA DE PAGINAÇÃO ---
   const totalFiles = bidding.arquivos.length;
@@ -70,7 +70,7 @@ const FilesModal: React.FC<FilesModalProps> = ({ bidding, isOpen, onClose }) => 
   const fetchFile = async (url: string) => {
     const proxyUrl = url.replace('https://pncp.gov.br/pncp-api', '/api/proxy');
     const options = {
-      headers: { 'Authorization': `Bearer ${token}` },
+      headers: session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {},
       cache: 'no-cache' as RequestCache,
     };
     const response = await fetch(proxyUrl, options);

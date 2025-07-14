@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useFilters } from '@/contexts/FiltersContext';
 import { Bidding } from '@/types/bidding';
 import { ActivitySummary, EventType } from '@/pages/ScheduledSearch';
-import { format, subDays } from 'date-fns';
+import { format, subDays, addDays, startOfDay, endOfDay } from 'date-fns';
 
 export const useScheduledSearchData = (selectedFilterId: string) => {
   const [activitySummary, setActivitySummary] = useState<ActivitySummary>({});
@@ -45,7 +45,19 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
         throw error;
       }
 
-      return data || [];
+      // Filter results to show only proposals closing between today and next 7 days
+      // Omit proposals with past closing dates
+      const today = startOfDay(new Date());
+      const next7Days = endOfDay(addDays(new Date(), 7));
+
+      const filteredData = (data || []).filter(edital => {
+        if (!edital.data_encerramento_proposta) return false;
+        
+        const closingDate = new Date(edital.data_encerramento_proposta);
+        return closingDate >= today && closingDate <= next7Days;
+      });
+
+      return filteredData;
     },
     enabled: !!selectedFilter?.keywords,
     staleTime: 5 * 60 * 1000, // 5 minutes
