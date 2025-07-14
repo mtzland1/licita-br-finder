@@ -116,12 +116,22 @@ export const fetchEditais = async (
       query = query.in('modalidade_nome', filters.modalities);
     }
 
+    // Filtros de data de abertura
     if (filters.startDate) {
-      query = query.gte('data_publicacao_pncp', filters.startDate.toISOString());
+      query = query.gte('data_abertura_proposta', filters.startDate.toISOString());
     }
 
     if (filters.endDate) {
-      query = query.lte('data_publicacao_pncp', filters.endDate.toISOString());
+      query = query.lte('data_abertura_proposta', filters.endDate.toISOString());
+    }
+
+    // Filtros de data de encerramento
+    if (filters.startCloseDate) {
+      query = query.gte('data_encerramento_proposta', filters.startCloseDate.toISOString());
+    }
+
+    if (filters.endCloseDate) {
+      query = query.lte('data_encerramento_proposta', filters.endCloseDate.toISOString());
     }
   }
 
@@ -179,6 +189,7 @@ export const getUniqueCities = async (states: string[]): Promise<string[]> => {
   // Se o array de estados estiver vazio, não faz sentido consultar
   if (!states || states.length === 0) {
     return [];
+
   }
 
   // Passamos o array de estados como parâmetro para a função RPC

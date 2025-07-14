@@ -133,6 +133,7 @@ const Search = () => {
     filters.modalities.length ||
     filters.cities.length ||
     filters.startDate ||
+
     filters.endDate ||
     filters.startCloseDate ||
     filters.endCloseDate);
@@ -364,6 +365,7 @@ const Search = () => {
                       </Popover>
                     </div>
                   </div>
+
                 </div>
               </div>
 
