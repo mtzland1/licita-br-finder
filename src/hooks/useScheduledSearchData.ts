@@ -9,6 +9,7 @@ import { format, subDays, addDays, startOfDay, endOfDay } from 'date-fns';
 
 export const useScheduledSearchData = (selectedFilterId: string) => {
   const [activitySummary, setActivitySummary] = useState<ActivitySummary>({});
+  const [closingSummary, setClosingSummary] = useState<Record<string, number>>({});
   const { savedFilters } = useFilters();
 
   const selectedFilter = savedFilters.find(f => f.id === selectedFilterId);
@@ -23,6 +24,17 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
     return days;
   };
 
+  // Generate the next 7 days starting from today
+  const getNext7Days = () => {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(new Date(), i);
+      days.push(format(date, 'yyyy-MM-dd'));
+    }
+    return days;
+  };
+
+  // Fetch ALL relevant editais (sem filtro de data aqui)
   const { data: relevantEditais = [], isLoading } = useQuery({
     queryKey: ['scheduledSearchEditais', selectedFilterId, selectedFilter?.keywords],
     queryFn: async () => {
@@ -36,7 +48,7 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
 
       if (keywords.length === 0) return [];
 
-      // Use the existing function to search by keywords
+      // Use the existing function to search by keywords (sem filtro de data)
       const { data, error } = await supabase
         .rpc('buscar_editais_fts', { palavras_chave: keywords });
 
@@ -45,26 +57,13 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
         throw error;
       }
 
-      // Filter results to show only proposals closing from NOW to next 7 days
-      // Omit proposals that have already closed (past dates)
-      const now = new Date(); // Momento atual exato
-      const next7Days = endOfDay(addDays(new Date(), 7));
-
-      const filteredData = (data || []).filter(edital => {
-        if (!edital.data_encerramento_proposta) return false;
-        
-        const closingDate = new Date(edital.data_encerramento_proposta);
-        // Só mostra propostas que ainda não encerraram (data futura) e até 7 dias
-        return closingDate > now && closingDate <= next7Days;
-      });
-
-      return filteredData;
+      return data || [];
     },
     enabled: !!selectedFilter?.keywords,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Calculate activity summary when relevant editais change
+  // Calculate activity summary for LAST 7 days (sem proposal_closings)
   useEffect(() => {
     if (!relevantEditais.length) {
       setActivitySummary({});
@@ -79,7 +78,7 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
         updates: 0,
         new_publications: 0,
         proposal_openings: 0,
-        proposal_closings: 0
+        proposal_closings: 0 // Manter mas não usar mais
       };
 
       relevantEditais.forEach(edital => {
@@ -99,14 +98,41 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
           summary[date].proposal_openings++;
         }
 
-        // Count proposal closings
-        if (edital.data_encerramento_proposta && format(new Date(edital.data_encerramento_proposta), 'yyyy-MM-dd') === date) {
-          summary[date].proposal_closings++;
-        }
+        // NÃO contar proposal_closings aqui mais
       });
     });
 
     setActivitySummary(summary);
+  }, [relevantEditais]);
+
+  // Calculate closing summary for NEXT 7 days
+  useEffect(() => {
+    if (!relevantEditais.length) {
+      setClosingSummary({});
+      return;
+    }
+
+    const next7Days = getNext7Days();
+    const summary: Record<string, number> = {};
+
+    next7Days.forEach(date => {
+      summary[date] = 0;
+
+      relevantEditais.forEach(edital => {
+        // Count only future proposal closings
+        if (edital.data_encerramento_proposta) {
+          const closingDate = new Date(edital.data_encerramento_proposta);
+          const now = new Date();
+          
+          // Só conta se é futuro e coincide com a data
+          if (closingDate > now && format(closingDate, 'yyyy-MM-dd') === date) {
+            summary[date]++;
+          }
+        }
+      });
+    });
+
+    setClosingSummary(summary);
   }, [relevantEditais]);
 
   const getFilteredBiddings = async (date: string, eventType: EventType): Promise<Bidding[]> => {
@@ -133,9 +159,28 @@ export const useScheduledSearchData = (selectedFilterId: string) => {
     return filteredEditais.map(edital => transformEditalToBidding(edital));
   };
 
+  // Get closing proposals for next 7 days
+  const getClosingBiddings = async (date: string): Promise<Bidding[]> => {
+    if (!relevantEditais.length) return [];
+
+    const filteredEditais = relevantEditais.filter(edital => {
+      if (!edital.data_encerramento_proposta) return false;
+      
+      const closingDate = new Date(edital.data_encerramento_proposta);
+      const now = new Date();
+      
+      // Só retorna se é futuro e coincide com a data
+      return closingDate > now && format(closingDate, 'yyyy-MM-dd') === date;
+    });
+
+    return filteredEditais.map(edital => transformEditalToBidding(edital));
+  };
+
   return {
     activitySummary,
+    closingSummary,
     getFilteredBiddings,
+    getClosingBiddings,
     isLoading
   };
 };

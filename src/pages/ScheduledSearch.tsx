@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ActivitySummaryTable } from '@/components/scheduled-search/ActivitySummaryTable';
+import { ClosingSummaryTable } from '@/components/scheduled-search/ClosingSummaryTable';
 import BiddingCard from "@/components/BiddingCard";
 import { useFilters } from '@/contexts/FiltersContext';
 import { useScheduledSearchData } from '@/hooks/useScheduledSearchData';
@@ -17,6 +18,8 @@ const ScheduledSearch: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedEventType, setSelectedEventType] = useState<EventType | null>(null);
   const [filteredBiddings, setFilteredBiddings] = useState<Bidding[]>([]);
+  const [closingDate, setClosingDate] = useState<string>('');
+  const [closingBiddings, setClosingBiddings] = useState<Bidding[]>([]);
   
   const [clientTodayStr, setClientTodayStr] = useState<string | null>(null);
   const [clientYesterdayStr, setClientYesterdayStr] = useState<string | null>(null);
@@ -25,8 +28,10 @@ const ScheduledSearch: React.FC = () => {
   
   const selectedFilter = savedFilters.find(f => f.id === selectedFilterId);
   const { 
-    activitySummary, 
+    activitySummary,
+    closingSummary,
     getFilteredBiddings,
+    getClosingBiddings,
     isLoading: dataLoading 
   } = useScheduledSearchData(selectedFilterId);
 
@@ -47,37 +52,61 @@ const ScheduledSearch: React.FC = () => {
     setSelectedDate('');
     setSelectedEventType(null);
     setFilteredBiddings([]);
+    setClosingDate('');
+    setClosingBiddings([]);
   };
 
   const handleCellClick = async (date: string, eventType: EventType, count: number) => {
     if (count === 0) return;
     
-    setSelectedDate(date);
-    setSelectedEventType(eventType);
-    
-    const biddings = await getFilteredBiddings(date, eventType);
-    setFilteredBiddings(biddings);
-  };
-
-  const formatDateForDisplay = (dateStr: string) => {
-
-    const date = new Date(`${dateStr}T00:00:00`); 
-    
-    if (clientTodayStr && dateStr === clientTodayStr) {
-      return `Hoje, ${format(date, 'dd/MM', { locale: ptBR })}`;
-    } else if (clientYesterdayStr && dateStr === clientYesterdayStr) {
-      return `Ontem, ${format(date, 'dd/MM', { locale: ptBR })}`;
-    } else {
-      return format(date, 'dd/MM', { locale: ptBR });
+    try {
+      setSelectedDate(date);
+      setSelectedEventType(eventType);
+      
+      const biddings = await getFilteredBiddings(date, eventType);
+      setFilteredBiddings(biddings);
+      
+      // Clear closing selection
+      setClosingDate('');
+      setClosingBiddings([]);
+    } catch (error) {
+      console.error('Error fetching filtered biddings:', error);
     }
   };
 
-  const getEventTypeLabel = (eventType: EventType) => {
+  const handleClosingCellClick = async (date: string) => {
+    try {
+      const biddings = await getClosingBiddings(date);
+      setClosingDate(date);
+      setClosingBiddings(biddings);
+      
+      // Clear activity selection
+      setSelectedDate('');
+      setSelectedEventType(null);
+      setFilteredBiddings([]);
+    } catch (error) {
+      console.error('Error fetching closing biddings:', error);
+    }
+  };
+
+  const formatDateForDisplay = (dateStr: string): string => {
+    if (!clientTodayStr) return dateStr;
+    
+    if (dateStr === clientTodayStr) {
+      return `${format(new Date(dateStr), 'dd/MM/yyyy', { locale: ptBR })} (Hoje)`;
+    } else if (dateStr === clientYesterdayStr) {
+      return `${format(new Date(dateStr), 'dd/MM/yyyy', { locale: ptBR })} (Ontem)`;
+    } else {
+      return format(new Date(dateStr), 'dd/MM/yyyy (eeee)', { locale: ptBR });
+    }
+  };
+
+  const getEventTypeLabel = (eventType: EventType): string => {
     const labels = {
       updates: 'Atualizações',
       new_publications: 'Novas Publicações',
-      proposal_openings: 'Abertura de Propostas',
-      proposal_closings: 'Encerramento de Propostas'
+      proposal_openings: 'Aberturas de Propostas',
+      proposal_closings: 'Encerramentos de Propostas'
     };
     return labels[eventType];
   };
@@ -107,30 +136,38 @@ const ScheduledSearch: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Activity Summary Table */}
+      {/* Summary Tables */}
       {selectedFilterId && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Resumo de Atividades - Últimos 7 Dias</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {dataLoading ? (
-              <div className="flex justify-center py-8">
-                <div className="text-muted-foreground">Carregando resumo...</div>
-              </div>
-            ) : (
-              <ActivitySummaryTable
-                activitySummary={activitySummary}
-                onCellClick={handleCellClick}
-                formatDateForDisplay={formatDateForDisplay}
-              />
-            )}
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Resumo de Atividades - Últimos 7 Dias</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {dataLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="text-muted-foreground">Carregando resumo...</div>
+                </div>
+              ) : (
+                <ActivitySummaryTable
+                  activitySummary={activitySummary}
+                  onCellClick={handleCellClick}
+                  formatDateForDisplay={formatDateForDisplay}
+                />
+              )}
+            </CardContent>
+          </Card>
+          
+          <ClosingSummaryTable
+            closingSummary={closingSummary}
+            onCellClick={handleClosingCellClick}
+            clientTodayStr={clientTodayStr}
+          />
+        </div>
       )}
 
-      {/* Results Section */}
-      {selectedDate && selectedEventType && (
+      {/* Results for Activity Summary */}
+      {(selectedDate && selectedEventType && filteredBiddings.length > 0) && (
         <Card>
           <CardHeader>
             <CardTitle>
@@ -138,21 +175,37 @@ const ScheduledSearch: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {filteredBiddings.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhum edital encontrado para os critérios selecionados.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredBiddings.map((bidding) => (
-                  <BiddingCard 
-                    key={bidding._id} 
-                    bidding={bidding}
-                    searchTerms={selectedFilter?.keywords ? selectedFilter.keywords.split(';').map(k => k.trim()).filter(k => k) : []}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="space-y-4">
+              {filteredBiddings.map((bidding) => (
+                <BiddingCard 
+                  key={bidding._id} 
+                  bidding={bidding}
+                  searchTerms={selectedFilter?.keywords ? selectedFilter.keywords.split(';').map(k => k.trim()).filter(k => k) : []}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Results for Closing Proposals */}
+      {(closingDate && closingBiddings.length > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Propostas Encerrando em {formatDateForDisplay(closingDate)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {closingBiddings.map((bidding) => (
+                <BiddingCard 
+                  key={bidding._id} 
+                  bidding={bidding}
+                  searchTerms={selectedFilter?.keywords ? selectedFilter.keywords.split(';').map(k => k.trim()).filter(k => k) : []}
+                />
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
