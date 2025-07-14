@@ -7,18 +7,18 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 
-import { 
-  Command, 
-  CommandEmpty, 
-  CommandGroup, 
-  CommandInput, 
-  CommandItem, 
-  CommandList 
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList
 } from '@/components/ui/command';
 
-import { 
+import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -50,14 +50,13 @@ const Search = () => {
   const [citySearchTerm, setCitySearchTerm] = useState('');
 
   // Fetch filter options using the corrected hooks
-  const { data: availableStates = [] } = useStates(); // Busca todos os estados da API
+  const { data: availableStates = [] } = useStates();
   const { data: availableModalities = [] } = useModalities();
-  // ✅ CORRIGIDO: Passa o array completo de `filters.states` para o hook useCities
   const { data: availableCities = [] } = useCities(filters.states);
 
   // Fetch editais data with pagination
   const { data: editaisData, isLoading, error } = useEditais(filters, currentPage, ITEMS_PER_PAGE);
-  
+
   const editais = editaisData?.data || [];
   const total = editaisData?.total || 0;
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
@@ -65,7 +64,7 @@ const Search = () => {
   // Filter cities based on search term
   const filteredCities = useMemo(() => {
     if (!citySearchTerm.trim()) return availableCities;
-    return availableCities.filter(city => 
+    return availableCities.filter(city =>
       city.toLowerCase().includes(citySearchTerm.toLowerCase())
     );
   }, [availableCities, citySearchTerm]);
@@ -80,17 +79,17 @@ const Search = () => {
       const newValues = prev[key].includes(value)
         ? prev[key].filter(item => item !== value)
         : [...prev[key], value];
-  
+
       // Se os estados mudam, limpa as cidades selecionadas
       if (key === 'states') {
         return { ...prev, states: newValues, cities: [] };
       }
-  
+
       return { ...prev, [key]: newValues };
     });
     setCurrentPage(1);
   };
-  
+
   const selectAllStates = () => {
     const allSelected = filters.states.length === availableStates.length;
     setFilters(prev => ({
@@ -99,7 +98,6 @@ const Search = () => {
       cities: [] // Limpa cidades ao selecionar todos os estados
     }));
     setCurrentPage(1);
-
   };
 
   const selectAllCities = () => {
@@ -130,11 +128,12 @@ const Search = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const hasActiveFilters = !!(filters.keywords.trim() || 
-    filters.states.length || 
-    filters.modalities.length || 
+  const hasActiveFilters = !!(filters.keywords.trim() ||
+    filters.states.length ||
+    filters.modalities.length ||
     filters.cities.length ||
-    filters.startDate || 
+    filters.startDate ||
+
     filters.endDate ||
     filters.startCloseDate ||
     filters.endCloseDate);
@@ -207,7 +206,7 @@ const Search = () => {
               )}
             </Button>
           </div>
-          
+
           <div className="text-sm text-gray-600">
             <p>💡 A busca inteligente está sempre ativa: ignora acentos e trata plurais/singulares automaticamente</p>
           </div>
@@ -226,7 +225,7 @@ const Search = () => {
                 </div>
               </CardTitle>
             </CardHeader>
-            
+
             <CardContent className="space-y-8">
               {/* Filtros de Data */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -299,78 +298,78 @@ const Search = () => {
                   </div>
                 </div>
 
-                {/* ✅ CORRIGIDO: Data de Encerramento agora usa campos independentes */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <CalendarIcon className="h-4 w-4" />
                     Data de Encerramento
                   </Label>
                   <div className="grid grid-cols-2 gap-2">
-                     <div>
-                       <Label className="text-xs text-gray-600 mb-1 block">De</Label>
-                       <Popover>
-                         <PopoverTrigger asChild>
-                           <Button
-                             variant="outline"
-                             className={cn(
-                               "w-full justify-start text-left font-normal text-sm",
-                               !filters.startCloseDate && "text-muted-foreground"
-                             )}
-                           >
-                             <CalendarIcon className="mr-2 h-3 w-3" />
-                             {filters.startCloseDate ? (
-                               format(filters.startCloseDate, "dd/MM/yyyy", { locale: ptBR })
-                             ) : (
-                               <span>Selecionar</span>
-                             )}
-                           </Button>
-                         </PopoverTrigger>
-                         <PopoverContent className="w-auto p-0" align="start">
-                           <Calendar
-                             mode="single"
-                             selected={filters.startCloseDate}
-                             onSelect={(date) => updateFilter('startCloseDate', date)}
-                             initialFocus
-                             className="p-3 pointer-events-auto"
-                           />
-                         </PopoverContent>
-                       </Popover>
-                     </div>
-                     <div>
-                       <Label className="text-xs text-gray-600 mb-1 block">Até</Label>
-                       <Popover>
-                         <PopoverTrigger asChild>
-                           <Button
-                             variant="outline"
-                             className={cn(
-                               "w-full justify-start text-left font-normal text-sm",
-                               !filters.endCloseDate && "text-muted-foreground"
-                             )}
-                           >
-                             <CalendarIcon className="mr-2 h-3 w-3" />
-                             {filters.endCloseDate ? (
-                               format(filters.endCloseDate, "dd/MM/yyyy", { locale: ptBR })
-                             ) : (
-                               <span>Selecionar</span>
-                             )}
-                           </Button>
-                         </PopoverTrigger>
-                         <PopoverContent className="w-auto p-0" align="start">
-                           <Calendar
-                             mode="single"
-                             selected={filters.endCloseDate}
-                             onSelect={(date) => updateFilter('endCloseDate', date)}
-                             initialFocus
-                             className="p-3 pointer-events-auto"
-                           />
-                         </PopoverContent>
-                       </Popover>
-                     </div>
-                   </div>
+                    <div>
+                      <Label className="text-xs text-gray-600 mb-1 block">De</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal text-sm",
+                              !filters.startCloseDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-3 w-3" />
+                            {filters.startCloseDate ? (
+                              format(filters.startCloseDate, "dd/MM/yyyy", { locale: ptBR })
+                            ) : (
+                              <span>Selecionar</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={filters.startCloseDate}
+                            onSelect={(date) => updateFilter('startCloseDate', date)}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-600 mb-1 block">Até</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal text-sm",
+                              !filters.endCloseDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-3 w-3" />
+                            {filters.endCloseDate ? (
+                              format(filters.endCloseDate, "dd/MM/yyyy", { locale: ptBR })
+                            ) : (
+                              <span>Selecionar</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={filters.endCloseDate}
+                            onSelect={(date) => updateFilter('endCloseDate', date)}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
-              {/* Estados - NOVO COMPONENTE */}
+              {/* Estados */}
               <div className="space-y-3">
                 <Label className="text-sm font-medium flex items-center gap-2">
                   <Building className="h-4 w-4" />
@@ -402,9 +401,9 @@ const Search = () => {
                             className="cursor-pointer"
                           >
                             <div className={cn(
-                                "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                filters.states.length === availableStates.length ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible"
-                              )} >
+                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                              filters.states.length === availableStates.length ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible"
+                            )} >
                               <Check className={cn("h-4 w-4")} />
                             </div>
                             {filters.states.length === availableStates.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
@@ -416,7 +415,7 @@ const Search = () => {
                               onSelect={() => toggleArrayFilter('states', state)}
                               className="cursor-pointer"
                             >
-                              <div className={cn( "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", filters.states.includes(state) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible" )} >
+                              <div className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", filters.states.includes(state) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible")} >
                                 <Check className={cn("h-4 w-4")} />
                               </div>
                               {state}
@@ -441,17 +440,19 @@ const Search = () => {
                 )}
               </div>
 
-              {/* Cidades - NOVO COMPONENTE */}
+              {/* Cidades - ✅ CORRIGIDO */}
               <div className="space-y-3">
                 <Label className="text-sm font-medium flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
-                   Cidades {filters.states.length === 1 && `(${filters.states[0]})`}
+                  Cidades
+                  {filters.states.length > 0 && filters.states.length <= 3 && ` (${filters.states.join(', ')})`}
                 </Label>
-                 {filters.states.length === 1 ? (
+
+                {filters.states.length > 0 ? (
                   <>
                     <Popover>
                       <PopoverTrigger asChild>
-                         <Button
+                        <Button
                           variant="outline"
                           role="combobox"
                           className="w-full justify-between font-normal"
@@ -462,29 +463,33 @@ const Search = () => {
                             {filters.cities.length === 1 && filters.cities[0]}
                             {filters.cities.length > 1 && `${filters.cities.length} cidades selecionadas`}
                           </span>
-                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                         <Command>
-                          <CommandInput placeholder="Buscar cidade..." />
+                        <Command>
+                          <CommandInput 
+                            placeholder="Buscar cidade..." 
+                            value={citySearchTerm}
+                            onValueChange={setCitySearchTerm}
+                          />
                           <CommandList>
                             <CommandEmpty>Nenhuma cidade encontrada.</CommandEmpty>
-                             <CommandGroup>
+                            <CommandGroup>
                               <CommandItem onSelect={selectAllCities} className="cursor-pointer">
-                                <div className={cn( "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", filters.cities.length === availableCities.length && availableCities.length > 0 ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible" )} >
+                                <div className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", filters.cities.length === filteredCities.length && filteredCities.length > 0 ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible")} >
                                   <Check className={cn("h-4 w-4")} />
                                 </div>
-                                {filters.cities.length === availableCities.length ? 'Desmarcar Todas' : 'Selecionar Todas'}
+                                {filters.cities.length === filteredCities.length && filteredCities.length > 0 ? 'Desmarcar Todas' : 'Selecionar Todas'}
                               </CommandItem>
-                               {availableCities.map((city) => (
+                              {filteredCities.map((city) => (
                                 <CommandItem
                                   key={city}
                                   value={city}
                                   onSelect={() => toggleArrayFilter('cities', city)}
                                   className="cursor-pointer"
                                 >
-                                  <div className={cn( "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", filters.cities.includes(city) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible" )} >
+                                  <div className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", filters.cities.includes(city) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible")} >
                                     <Check className={cn("h-4 w-4")} />
                                   </div>
                                   {city}
@@ -501,7 +506,6 @@ const Search = () => {
                           <Badge key={city} variant="secondary" className="text-xs">
                             {city}
                             <button onClick={() => toggleArrayFilter('cities', city)} className="ml-1.5 rounded-full hover:bg-gray-300/50" >
-
                               <X className="h-3 w-3" />
                             </button>
                           </Badge>
@@ -511,12 +515,8 @@ const Search = () => {
                   </>
                 ) : (
                   <div className="text-sm text-gray-500 italic p-4 bg-gray-50 rounded-lg text-center">
-                    {filters.states.length > 1 
-                      ? "A seleção de cidade está disponível apenas quando um único estado é selecionado."
-                      : "Selecione um estado para ver as cidades."
-                    }
+                    Selecione um ou mais estados para ver as cidades disponíveis.
                   </div>
-
                 )}
               </div>
 
@@ -532,7 +532,6 @@ const Search = () => {
                         onCheckedChange={() => toggleArrayFilter('modalities', modality)}
                       />
                       <Label htmlFor={`modality-${modality}`} className="text-sm cursor-pointer font-normal">
-
                         {modality}
                       </Label>
                     </div>
@@ -585,24 +584,24 @@ const Search = () => {
         ) : (
           <div className="space-y-4">
             {editais.map((bidding) => (
-              <BiddingCard 
-                key={bidding._id} 
+              <BiddingCard
+                key={bidding._id}
                 bidding={bidding}
               />
             ))}
-            
+
             {/* Paginação */}
             {totalPages > 1 && (
               <div className="flex justify-center mt-8">
                 <Pagination>
                   <PaginationContent>
                     <PaginationItem>
-                      <PaginationPrevious 
+                      <PaginationPrevious
                         onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                         className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                       />
                     </PaginationItem>
-                    
+
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                       let pageNum;
                       if (totalPages <= 5 || currentPage <= 3) {
@@ -612,7 +611,7 @@ const Search = () => {
                       } else {
                         pageNum = currentPage - 2 + i;
                       }
-                      
+
                       if (pageNum > totalPages) return null;
 
                       return (
@@ -627,9 +626,9 @@ const Search = () => {
                         </PaginationItem>
                       );
                     })}
-                    
+
                     <PaginationItem>
-                      <PaginationNext 
+                      <PaginationNext
                         onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                         className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                       />
